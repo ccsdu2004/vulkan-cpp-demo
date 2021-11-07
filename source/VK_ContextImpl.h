@@ -39,6 +39,7 @@ class VK_ContextImpl : public VK_Context
     };
     static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData);
     static void framebufferResizeCallback(GLFWwindow* window, int width, int height);
+    static void mouseButtonCallback(GLFWwindow* window, int button, int state, int mods);
 public:
     VK_ContextImpl(const VK_ContextConfig &config);
     ~VK_ContextImpl();
@@ -50,6 +51,9 @@ public:
     bool initPipeline(VK_ShaderSet* shaderSet)override;
     bool createCommandBuffers()override;
     bool run()override;
+public:
+    void setClearColor(float r, float g, float b, float a)override;
+    void setClearDepthStencil(float depth, uint32_t stencil)override;
 public:
     VK_ShaderSet* createShaderSet()override;
 
@@ -97,6 +101,8 @@ private:
     QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
     std::vector<const char*> getRequiredExtensions();
     bool checkValidationLayerSupport();
+
+    void initClearColorAndDepthStencil();
 private:
     VK_ContextConfig appConfig;
     VK_Config vkConfig;
@@ -138,6 +144,8 @@ private:
 
     VK_ShaderSet* vkShaderSet = nullptr;
     std::list<VK_Buffer*> vkBuffers;
+
+    VkClearValue vkClearValue;
 };
 
 

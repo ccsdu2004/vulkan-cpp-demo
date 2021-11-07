@@ -2,6 +2,7 @@
 #define VK_CONEXT_H
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
+#include <functional>
 #include "VK_ShaderSet.h"
 #include "VK_Buffer.h"
 #include "source/VK_ShaderSetImpl.h"
@@ -23,6 +24,9 @@ public:
     virtual bool createCommandBuffers() = 0;
     virtual bool run() = 0;
 public:
+    virtual void setClearColor(float r, float f, float b, float a) = 0;
+    virtual void setClearDepthStencil(float depth, uint32_t stencil) = 0;
+public:
     virtual VK_ShaderSet* createShaderSet() = 0;
 
     virtual VK_Buffer* createBuffer(const std::vector<VK_Vertex>& vertices) = 0;
@@ -35,6 +39,14 @@ public:
 struct VK_ContextConfig {
     std::string name = "VK_Context";
     bool debug = false;
+    std::function<void(int, int, int)> mouseCallback;
+
+    VK_ContextConfig() = default;
+    VK_ContextConfig(const VK_ContextConfig& config):
+        name(config.name),
+        debug(config.debug),
+        mouseCallback(config.mouseCallback)
+    {}
 };
 VK_Context* createVkContext(const VK_ContextConfig& config);
 

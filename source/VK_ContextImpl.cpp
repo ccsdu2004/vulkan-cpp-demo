@@ -56,6 +56,9 @@ bool VK_ContextImpl::createWindow(int width, int height, bool resize)
     window = glfwCreateWindow(width, height, appConfig.name.data(), nullptr, nullptr);
     if(!window)
         std::cerr << "create glfw window failed\n";
+
+    glfwSetWindowUserPointer(window, this);
+    glfwSetMouseButtonCallback(window, mouseButtonCallback);
     return window != nullptr;
 }
 
@@ -81,6 +84,7 @@ bool VK_ContextImpl::initVulkan(const VK_Config& config)
     createCommandBuffers();
     createSyncObjects();
 
+    initClearColorAndDepthStencil();
     return true;
 }
 
@@ -112,10 +116,35 @@ bool VK_ContextImpl::run()
     return true;
 }
 
+void VK_ContextImpl::setClearColor(float r, float g, float b, float a)
+{
+    vkClearValue.color.float32[0] = std::clamp<float>(r, 0.0f, 1.0f);
+    vkClearValue.color.float32[1] = std::clamp<float>(g, 0.0f, 1.0f);
+    vkClearValue.color.float32[2] = std::clamp<float>(b, 0.0f, 1.0f);
+    vkClearValue.color.float32[3] = std::clamp<float>(a, 0.0f, 1.0f);
+
+    recreateSwapChain();
+}
+
+void VK_ContextImpl::setClearDepthStencil(float depth, uint32_t stencil)
+{
+    vkClearValue.depthStencil.depth = std::clamp<float>(depth, 0.0f, 1.0f);
+    vkClearValue.depthStencil.stencil = stencil;
+
+    recreateSwapChain();
+}
+
 void VK_ContextImpl::framebufferResizeCallback(GLFWwindow *window, int width, int height)
 {
-    auto app = reinterpret_cast<VK_ContextImpl*>(glfwGetWindowUserPointer(window));
-    app->framebufferResized = true;
+    auto context = reinterpret_cast<VK_ContextImpl*>(glfwGetWindowUserPointer(window));
+    context->framebufferResized = true;
+}
+
+void VK_ContextImpl::mouseButtonCallback(GLFWwindow *window, int button, int state, int mods)
+{
+    auto context = reinterpret_cast<VK_ContextImpl*>(glfwGetWindowUserPointer(window));
+    if(context->appConfig.mouseCallback)
+        context->appConfig.mouseCallback(button, state, mods);
 }
 
 void VK_ContextImpl::cleanupSwapChain()
@@ -578,10 +607,12 @@ void VK_ContextImpl::createGraphicsPipeline()
     pipelineInfo.renderPass = renderPass;
     pipelineInfo.subpass = 0;
     pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
+    pipelineInfo.pNext = nullptr;
 
     if (vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineInfo, nullptr, &graphicsPipeline) != VK_SUCCESS) {
         throw std::runtime_error("failed to create graphics pipeline!");
     }
+
 }
 
 void VK_ContextImpl::createFramebuffers()
@@ -650,9 +681,8 @@ bool VK_ContextImpl::createCommandBuffers()
         renderPassInfo.renderArea.offset = {0, 0};
         renderPassInfo.renderArea.extent = swapChainExtent;
 
-        VkClearValue clearColor = {{{0.0f, 0.1f, 0.0f, 1.0f}}};
         renderPassInfo.clearValueCount = 1;
-        renderPassInfo.pClearValues = &clearColor;
+        renderPassInfo.pClearValues = &vkClearValue;
 
         vkCmdBeginRenderPass(commandBuffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
@@ -932,6 +962,11 @@ bool VK_ContextImpl::checkValidationLayerSupport()
     }
 
     return true;
+}
+
+void VK_ContextImpl::initClearColorAndDepthStencil()
+{
+    vkClearValue = {{{0.0f, 0.0f, 0.0f, 0.0f}}};
 }
 
 uint32_t VK_ContextImpl::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties)

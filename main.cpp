@@ -16,11 +16,23 @@ const std::vector<VK_Vertex> vertices2 = {
     {{0.5f, -0.5f, 0.0f}, {1.0f, 0.0f, 1.0f, 1.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}}
 };*/
 
+VK_Context* context = nullptr;
+
+void onMouseButtonCallback(int button, int action, int mods)
+{
+    if(action)
+        context->setClearColor(0, 1, 0, 1);
+    else
+        context->setClearColor(0, 0, 1, 1);
+}
+
 int main()
 {
     VK_ContextConfig config;
     config.debug = false;
-    VK_Context* context = createVkContext(config);
+    config.mouseCallback = &onMouseButtonCallback;
+
+    context = createVkContext(config);
     context->createWindow(640, 480, true);
 
     VK_Context::VK_Config vkConfig;

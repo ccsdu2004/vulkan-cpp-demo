@@ -123,7 +123,7 @@ void VK_ContextImpl::setClearColor(float r, float g, float b, float a)
     vkClearValue.color.float32[2] = std::clamp<float>(b, 0.0f, 1.0f);
     vkClearValue.color.float32[3] = std::clamp<float>(a, 0.0f, 1.0f);
 
-    recreateSwapChain();
+    vkNeedUpdateSwapChain = true;
 }
 
 void VK_ContextImpl::setClearDepthStencil(float depth, uint32_t stencil)
@@ -131,7 +131,7 @@ void VK_ContextImpl::setClearDepthStencil(float depth, uint32_t stencil)
     vkClearValue.depthStencil.depth = std::clamp<float>(depth, 0.0f, 1.0f);
     vkClearValue.depthStencil.stencil = stencil;
 
-    recreateSwapChain();
+    vkNeedUpdateSwapChain = true;
 }
 
 void VK_ContextImpl::framebufferResizeCallback(GLFWwindow *window, int width, int height)
@@ -726,6 +726,11 @@ void VK_ContextImpl::createSyncObjects()
 
 void VK_ContextImpl::drawFrame()
 {
+    if(vkNeedUpdateSwapChain) {
+        recreateSwapChain();
+        vkNeedUpdateSwapChain = true;
+    }
+
     vkWaitForFences(device, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
 
     uint32_t imageIndex;

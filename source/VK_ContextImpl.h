@@ -63,9 +63,11 @@ public:
 
     uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties)override;
 private:
+    void recreateSwapChain();
+
     void cleanupSwapChain();
     void cleanup();
-    void recreateSwapChain();
+
     void createInstance();
     void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo);
     void setupDebugMessenger();
@@ -145,6 +147,7 @@ private:
     VK_ShaderSet* vkShaderSet = nullptr;
     std::list<VK_Buffer*> vkBuffers;
 
+    bool vkNeedUpdateSwapChain = false;
     VkClearValue vkClearValue;
 };
 

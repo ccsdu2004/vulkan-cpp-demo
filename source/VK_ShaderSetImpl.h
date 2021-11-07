@@ -1,7 +1,7 @@
 #ifndef VK_SHADERSETIMPL_H
 #define VK_SHADERSETIMPL_H
 #include <vector>
-#include "../VK_ShaderSet.h"
+#include "VK_ShaderSet.h"
 
 class VK_ShaderSetImpl : public VK_ShaderSet
 {

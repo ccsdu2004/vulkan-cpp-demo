@@ -13,9 +13,10 @@ public:
     void release()override;
 
     bool addShader(const std::string &spvFile, VkShaderStageFlagBits type,
-                       const std::string &entryPoint = std::string("main"))override;
+                   const std::string &entryPoint = std::string("main"))override;
     bool isValid()override;
-    std::vector<VkPipelineShaderStageCreateInfo> getCreateInfo()override;
+    VkPipelineShaderStageCreateInfo *getCreateInfoData()override;
+    int getCreateInfoCount()override;
 private:
     VkShaderModule createShaderModule(const std::string &spvFile);
 private:

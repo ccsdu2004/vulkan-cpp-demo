@@ -47,10 +47,12 @@ public:
 public:
     bool createWindow(int width, int height, bool resize)override;
     bool initVulkan(const VK_Config& config)override;
+    bool initPipeline(VK_ShaderSet* shaderSet)override;
     bool createCommandBuffers()override;
     bool run()override;
 public:
     VK_ShaderSet* createShaderSet()override;
+
     VK_Buffer* createBuffer(const std::vector<VK_Vertex>& vertices)override;
     void removeBuffer(VK_Buffer* buffer)override;
     void addBuffer(VK_Buffer* buffer)override;
@@ -120,7 +122,7 @@ private:
 
     VkRenderPass renderPass;
     VkPipelineLayout pipelineLayout;
-    VkPipeline graphicsPipeline;
+    VkPipeline graphicsPipeline = 0;
     VkPipelineCache pipelineCache = 0;
 
     VkCommandPool commandPool;
@@ -134,6 +136,7 @@ private:
 
     bool framebufferResized = false;
 
+    VK_ShaderSet* vkShaderSet = nullptr;
     std::list<VK_Buffer*> vkBuffers;
 };
 

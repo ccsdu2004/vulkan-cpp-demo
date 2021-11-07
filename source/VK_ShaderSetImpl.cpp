@@ -73,9 +73,14 @@ bool VK_ShaderSetImpl::isValid()
     return hasV && hasFs;
 }
 
-std::vector<VkPipelineShaderStageCreateInfo> VK_ShaderSetImpl::getCreateInfo()
+VkPipelineShaderStageCreateInfo* VK_ShaderSetImpl::getCreateInfoData()
 {
-    return shaderStageCreateInfos;
+    return shaderStageCreateInfos.data();
+}
+
+int VK_ShaderSetImpl::getCreateInfoCount()
+{
+    return shaderStageCreateInfos.size();
 }
 
 VkShaderModule VK_ShaderSetImpl::createShaderModule(const std::string &spvFile)

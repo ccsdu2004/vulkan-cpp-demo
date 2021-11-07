@@ -1,3 +1,4 @@
+#include <iostream>
 #include "VK_VertexBuffer.h"
 #include "VK_Context.h"
 
@@ -30,6 +31,7 @@ void VK_VertexBuffer::create(const std::vector<VK_Vertex> &vertices, VK_Context*
     allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
     allocInfo.allocationSize = memRequirements.size;
     allocInfo.memoryTypeIndex = context->findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    allocInfo.pNext = nullptr;
 
     if (vkAllocateMemory(device, &allocInfo, nullptr, &bufferMemory) != VK_SUCCESS) {
         throw std::runtime_error("failed to allocate vertex buffer memory!");

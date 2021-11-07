@@ -75,18 +75,29 @@ bool VK_ContextImpl::initVulkan(const VK_Config& config)
     createImageViews();
 
     createRenderPass();
-    createGraphicsPipeline();
 
     createFramebuffers();
     createCommandPool();
     createCommandBuffers();
     createSyncObjects();
+
+    return true;
+}
+
+bool VK_ContextImpl::initPipeline(VK_ShaderSet *shaderSet)
+{
+    if(!shaderSet) {
+        std::cerr << "invalid input shaderSet" << std::endl;
+        return false;
+    }
+    vkShaderSet = shaderSet;
+
+    createGraphicsPipeline();
     return true;
 }
 
 bool VK_ContextImpl::run()
 {
-    std::cout << "start run" << std::endl;
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();
 
@@ -128,6 +139,9 @@ void VK_ContextImpl::cleanupSwapChain()
 
 void VK_ContextImpl::cleanup()
 {
+    if(vkShaderSet)
+        vkShaderSet->release();
+
     for(auto itr = vkBuffers.begin(); itr != vkBuffers.end(); itr++)
         (*itr)->release();
     vkBuffers.clear();
@@ -476,10 +490,6 @@ void VK_ContextImpl::addBuffer(VK_Buffer *buffer)
 
 void VK_ContextImpl::createGraphicsPipeline()
 {
-    auto shaderSet = createShaderSet();
-    shaderSet->addShader("shader/vertex/vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-    shaderSet->addShader("shader/vertex/frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
-
     auto bindingDescription = VK_Vertex::getBindingDescription();
     auto attributeDescriptions = VK_Vertex::getAttributeDescriptions();
 
@@ -556,8 +566,8 @@ void VK_ContextImpl::createGraphicsPipeline()
 
     VkGraphicsPipelineCreateInfo pipelineInfo{};
     pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-    pipelineInfo.stageCount = shaderSet->getCreateInfo().size();
-    pipelineInfo.pStages = shaderSet->getCreateInfo().data();
+    pipelineInfo.stageCount = vkShaderSet->getCreateInfoCount();
+    pipelineInfo.pStages = vkShaderSet->getCreateInfoData();
     pipelineInfo.pVertexInputState = &vertexInputInfo;
     pipelineInfo.pInputAssemblyState = &inputAssembly;
     pipelineInfo.pViewportState = &viewportState;
@@ -572,8 +582,6 @@ void VK_ContextImpl::createGraphicsPipeline()
     if (vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineInfo, nullptr, &graphicsPipeline) != VK_SUCCESS) {
         throw std::runtime_error("failed to create graphics pipeline!");
     }
-
-    shaderSet->release();
 }
 
 void VK_ContextImpl::createFramebuffers()
@@ -650,7 +658,6 @@ bool VK_ContextImpl::createCommandBuffers()
 
         vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
 
-        //vkCmdDraw(commandBuffers[i], 3, 1, 0, 0);
         for(auto itr = vkBuffers.begin(); itr != vkBuffers.end(); itr++)
             (*itr)->render(commandBuffers[i]);
 

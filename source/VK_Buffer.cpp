@@ -15,8 +15,10 @@ VK_Buffer::~VK_Buffer()
 void VK_Buffer::release()
 {
     if(device) {
-        vkDestroyBuffer(device, buffer, nullptr);
-        vkFreeMemory(device, bufferMemory, nullptr);
+        if(buffer)
+            vkDestroyBuffer(device, buffer, nullptr);
+        if(bufferMemory)
+            vkFreeMemory(device, bufferMemory, nullptr);
     }
 
     context->removeBuffer(this);

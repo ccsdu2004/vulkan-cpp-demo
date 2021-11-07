@@ -19,6 +19,7 @@ public:
         int maxFramsInFlight = 2;
     };
     virtual bool initVulkan(const VK_Config& config) = 0;
+    virtual bool initPipeline(VK_ShaderSet* shaderSet) = 0;
     virtual bool createCommandBuffers() = 0;
     virtual bool run() = 0;
 public:

@@ -4,7 +4,7 @@
 using namespace std;
 
 const std::vector<VK_Vertex> vertices1 = {
-    {{0.0f, -0.5f, 0.0f}, {1.0f, 1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
+    {{0.0f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f, 1.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
     {{0.5f, 0.5f, 0.0f}, {0.0f, 1.0f, 0.0f, 1.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
     {{-0.5f, 0.5f, 0.0f}, {0.0f, 0.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f}}
 };
@@ -36,7 +36,7 @@ int main()
 
     context->initPipeline(shaderSet);
 
-    auto buffer = context->createVertexBuffer(vertices1);
+    auto buffer = context->createBuffer(vertices1);
     context->addBuffer(buffer);
 
     context->createCommandBuffers();

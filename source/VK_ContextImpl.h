@@ -11,6 +11,7 @@
 #include <iostream>
 #include <fstream>
 #include "VK_Context.h"
+#include "VK_UniformBuffer.h"
 
 struct QueueFamilyIndices {
     std::optional<uint32_t> graphicsFamily;
@@ -64,6 +65,9 @@ public:
     void removeBuffer(VK_Buffer* buffer)override;
     void addBuffer(VK_Buffer* buffer)override;
 
+    VK_UniformBuffer* createUniformBuffer(uint32_t bufferSize)override;
+    void setUniformBuffer(VK_UniformBuffer* uniformBuffer)override;
+public:
     bool createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory)override;
     void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size)override;
     uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties)override;
@@ -91,6 +95,8 @@ private:
     void createFramebuffers();
 
     void createCommandPool();
+
+    void createDescriptorPool();
 
     void createSyncObjects();
 
@@ -146,6 +152,8 @@ private:
     VkCommandPool commandPool;
     std::vector<VkCommandBuffer> commandBuffers;
 
+    VkDescriptorPool descriptorPool = 0;
+
     std::vector<VkSemaphore> imageAvailableSemaphores;
     std::vector<VkSemaphore> renderFinishedSemaphores;
     std::vector<VkFence> inFlightFences;
@@ -156,6 +164,8 @@ private:
 
     VK_ShaderSet* vkShaderSet = nullptr;
     std::list<VK_Buffer*> vkBuffers;
+
+    VK_UniformBuffer* vkUniformBuffer = nullptr;
 
     bool vkNeedUpdateSwapChain = false;
     VkClearValue vkClearValue;

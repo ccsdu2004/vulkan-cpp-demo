@@ -26,13 +26,13 @@ void VK_VertexBuffer::release()
 
 void VK_VertexBuffer::create(const std::vector<VK_Vertex> &vertices, const std::vector<uint16_t>& indices)
 {
-    createBufferData<VK_Vertex>(vertices, buffer, bufferMemory);
+    createBufferData<VK_Vertex>(vertices, buffer, bufferMemory, true);
     count = vertices.size();
 
     if(indices.empty()) {
         indexedVertex = false;
     } else {
-        createBufferData<uint16_t>(indices, indexedBuffer, indexedBufferMemory);
+        createBufferData<uint16_t>(indices, indexedBuffer, indexedBufferMemory, false);
         indexedVertex = true;
         count = indices.size();
     }

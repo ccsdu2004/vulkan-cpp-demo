@@ -33,9 +33,11 @@ add_library(
      source/VK_ShaderSetImpl.cpp
      source/VK_Vertex.cpp
      source/VK_VertexBuffer.cpp
+     source/VK_UniformBufferImpl.cpp
+     source/VK_Util.cpp
 )
 
-set(DEMOS blend-color hello-triangle clear-color)
+set(DEMOS blend-color hello-triangle clear-color indexed-traingle uniform-buffer)
 
 foreach(var IN LISTS DEMOS)
     message("build ${var}")

@@ -7,6 +7,7 @@
 #include "VK_Buffer.h"
 
 class VK_Buffer;
+class VK_UniformBuffer;
 class VK_Context;
 class VulKanAppData;
 
@@ -36,6 +37,9 @@ public:
     virtual void addBuffer(VK_Buffer* buffer) = 0;
     virtual void removeBuffer(VK_Buffer* buffer) = 0;
 
+    virtual VK_UniformBuffer* createUniformBuffer(uint32_t bufferSize) = 0;
+    virtual void setUniformBuffer(VK_UniformBuffer* uniformBuffer) = 0;
+public:
     virtual bool createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory) = 0;
     virtual void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size) = 0;
     virtual uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) = 0;

@@ -15,6 +15,8 @@ VK_ShaderSetImpl::~VK_ShaderSetImpl()
 
 void VK_ShaderSetImpl::release()
 {
+    for(auto itr = shaderStageCreateInfos.begin(); itr != shaderStageCreateInfos.end(); itr++)
+        vkDestroyShaderModule(vkDevice, itr->module, nullptr);
     delete this;
 }
 

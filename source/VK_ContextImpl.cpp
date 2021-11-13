@@ -6,6 +6,7 @@
 #include "VK_Vertex.h"
 #include "VK_Buffer.h"
 #include "VK_VertexBuffer.h"
+#include "VK_UniformBufferImpl.h"
 #include "VK_Util.h"
 
 VK_Context* createVkContext(const VK_ContextConfig& config)
@@ -92,7 +93,8 @@ bool VK_ContextImpl::initVulkan(const VK_Config& config)
 
     createFramebuffers();
     createCommandPool();
-    createCommandBuffers();
+    createDescriptorPool();
+
     createSyncObjects();
 
     initClearColorAndDepthStencil();
@@ -190,6 +192,8 @@ void VK_ContextImpl::cleanupSwapChain()
     }
 
     vkDestroySwapchainKHR(device, swapChain, nullptr);
+
+    vkDestroyDescriptorPool(device, descriptorPool, nullptr);
 }
 
 void VK_ContextImpl::cleanup()
@@ -205,6 +209,10 @@ void VK_ContextImpl::cleanup()
     vkDestroyPipelineCache(device, pipelineCache, nullptr);
 
     cleanupSwapChain();
+
+    vkUniformBuffer->release();
+
+    vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
 
     for (int i = 0; i < vkConfig.maxFramsInFlight; i++) {
         vkDestroySemaphore(device, renderFinishedSemaphores[i], nullptr);
@@ -246,6 +254,12 @@ void VK_ContextImpl::recreateSwapChain()
     createRenderPass();
     createGraphicsPipeline();
     createFramebuffers();
+
+    createDescriptorPool();
+
+    if(vkUniformBuffer)
+        vkUniformBuffer->initDescriptorSets(descriptorSetLayout, swapChainImages.size(), descriptorPool);
+
     createCommandBuffers();
 
     imagesInFlight.resize(swapChainImages.size(), VK_NULL_HANDLE);
@@ -597,6 +611,20 @@ void VK_ContextImpl::addBuffer(VK_Buffer * buffer)
         vkBuffers.push_back(buffer);
 }
 
+VK_UniformBuffer *VK_ContextImpl::createUniformBuffer(uint32_t bufferSize)
+{
+    auto buffer = new VK_UniformBufferImpl(this, device, bufferSize);
+    buffer->initBuffer(swapChainImageViews.size());
+    buffer->initDescriptorSets(descriptorSetLayout, swapChainImageViews.size(), descriptorPool);
+    return buffer;
+}
+
+void VK_ContextImpl::setUniformBuffer(VK_UniformBuffer *uniformBuffer)
+{
+    if(uniformBuffer && uniformBuffer != vkUniformBuffer)
+        vkUniformBuffer = uniformBuffer;
+}
+
 bool VK_ContextImpl::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer & buffer, VkDeviceMemory & bufferMemory)
 {
     VkBufferCreateInfo bufferInfo{};
@@ -759,6 +787,7 @@ bool VK_ContextImpl::createGraphicsPipeline()
         std::cerr << "failed to create graphics pipeline!" << std::endl;
         return false;
     }
+
     return true;
 }
 
@@ -799,6 +828,24 @@ void VK_ContextImpl::createCommandPool()
     }
 }
 
+void VK_ContextImpl::createDescriptorPool()
+{
+    VkDescriptorPoolSize poolSize{};
+    poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    poolSize.descriptorCount = static_cast<uint32_t>(swapChainImages.size());
+
+    VkDescriptorPoolCreateInfo poolInfo{};
+    poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+    poolInfo.poolSizeCount = 1;
+    poolInfo.pPoolSizes = &poolSize;
+    poolInfo.maxSets = static_cast<uint32_t>(swapChainImages.size());
+    poolInfo.pNext = nullptr;
+
+    if (vkCreateDescriptorPool(device, &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS) {
+        throw std::runtime_error("failed to create descriptor pool!");
+    }
+}
+
 bool VK_ContextImpl::createCommandBuffers()
 {
     commandBuffers.resize(swapChainFramebuffers.size());
@@ -808,6 +855,7 @@ bool VK_ContextImpl::createCommandBuffers()
     allocInfo.commandPool = commandPool;
     allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
     allocInfo.commandBufferCount = (uint32_t) commandBuffers.size();
+    allocInfo.pNext = nullptr;
 
     if (vkAllocateCommandBuffers(device, &allocInfo, commandBuffers.data()) != VK_SUCCESS) {
         throw std::runtime_error("failed to allocate command buffers!");
@@ -835,13 +883,16 @@ bool VK_ContextImpl::createCommandBuffers()
 
         vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
 
+        if(vkUniformBuffer)
+            vkUniformBuffer->bindDescriptorSets(i, commandBuffers[i], pipelineLayout);
+
         for(auto itr = vkBuffers.begin(); itr != vkBuffers.end(); itr++)
             (*itr)->render(commandBuffers[i]);
 
         vkCmdEndRenderPass(commandBuffers[i]);
 
         if (vkEndCommandBuffer(commandBuffers[i]) != VK_SUCCESS) {
-            throw std::runtime_error("failed to record command buffer!");
+            std::cout << "failed to record command buffer!" << std::endl;
         }
     }
     return true;
@@ -889,6 +940,9 @@ void VK_ContextImpl::drawFrame()
     } else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
         throw std::runtime_error("failed to acquire swap chain image!");
     }
+
+    if(vkUniformBuffer)
+        vkUniformBuffer->update(imageIndex, 640.0f / 480.0f);
 
     if (imagesInFlight[imageIndex] != VK_NULL_HANDLE) {
         vkWaitForFences(device, 1, &imagesInFlight[imageIndex], VK_TRUE, UINT64_MAX);

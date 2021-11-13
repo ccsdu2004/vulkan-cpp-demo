@@ -16,7 +16,7 @@ public:
     void render(VkCommandBuffer command)override;
 private:
     template<class T>
-    inline void createBufferData(const std::vector<T>& input, VkBuffer& inputBuffer, VkDeviceMemory& deviceMemory)
+    inline void createBufferData(const std::vector<T>& input, VkBuffer& inputBuffer, VkDeviceMemory& deviceMemory, bool vertex)
     {
         auto bufferSize = sizeof(T) * input.size();
 
@@ -29,7 +29,7 @@ private:
         memcpy(data, input.data(), (size_t) bufferSize);
         vkUnmapMemory(device, stagingBufferMemory);
 
-        context->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, inputBuffer, deviceMemory);
+        context->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | (vertex ? VK_BUFFER_USAGE_VERTEX_BUFFER_BIT : VK_BUFFER_USAGE_INDEX_BUFFER_BIT), VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, inputBuffer, deviceMemory);
         context->copyBuffer(stagingBuffer, inputBuffer, bufferSize);
 
         vkDestroyBuffer(device, stagingBuffer, nullptr);

@@ -88,6 +88,7 @@ private:
     void createRenderPass();
     bool createDescriptorSetLayout();
 
+    bool isValidPipelineCacheData(const std::string& filename, const char* buffer, uint32_t size);
     void createGraphicsPiplelineCache();
     bool saveGraphicsPiplineCache();
     bool createGraphicsPipeline();
@@ -130,6 +131,8 @@ private:
     VkSurfaceKHR surface;
 
     VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
+    VkPhysicalDeviceFeatures deviceFeatures;
+    VkPhysicalDeviceProperties deviceProperties;
     VkDevice device = nullptr;
 
     VkQueue graphicsQueue;

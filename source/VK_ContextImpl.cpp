@@ -355,8 +355,11 @@ void VK_ContextImpl::pickPhysicalDevice()
     }
 
     if (physicalDevice == VK_NULL_HANDLE) {
-        throw std::runtime_error("failed to find a suitable GPU!");
+        std::cerr << "failed to find a suitable GPU!" << std::endl;
     }
+
+    vkGetPhysicalDeviceFeatures(physicalDevice, &deviceFeatures);
+    vkGetPhysicalDeviceProperties(physicalDevice, &deviceProperties);
 }
 
 void VK_ContextImpl::createLogicalDevice()
@@ -547,18 +550,81 @@ bool VK_ContextImpl::createDescriptorSetLayout()
     return true;
 }
 
+bool VK_ContextImpl::isValidPipelineCacheData(const std::string& filename, const char *buffer, uint32_t size)
+{
+    if(size > 32) {
+        uint32_t header = 0;
+        uint32_t version = 0;
+        uint32_t vendor = 0;
+        uint32_t deviceID = 0;
+        uint8_t pipelineCacheUUID[VK_UUID_SIZE] = {};
+
+        memcpy(&header, (uint8_t *)buffer + 0, 4);
+        memcpy(&version, (uint8_t *)buffer + 4, 4);
+        memcpy(&vendor, (uint8_t *)buffer + 8, 4);
+        memcpy(&deviceID, (uint8_t *)buffer + 12, 4);
+        memcpy(pipelineCacheUUID, (uint8_t *)buffer + 16, VK_UUID_SIZE);
+
+        if (header <= 0) {
+            std::cerr << "bad pipeline cache data header length in " << vkConfig.pipelineCacheFile << std::endl;
+            return false;
+        }
+
+        if (version != VK_PIPELINE_CACHE_HEADER_VERSION_ONE) {
+            std::cerr << "unsupported cache header version in " << filename << std::endl;
+            std::cerr << "cache contains: 0x" << std::hex << version << std::endl;
+        }
+
+        if (vendor != deviceProperties.vendorID) {
+            std::cerr << "vendor id mismatch in " << filename << std::endl;
+            std::cerr << "cache contains: 0x" << std::hex << vendor << std::endl;
+            std::cerr << "driver expects: 0x" << deviceProperties.vendorID << std::endl;
+            return false;
+        }
+
+        if (deviceID != deviceProperties.deviceID) {
+            std::cerr << "device id mismatch in " << filename << std::endl;
+            std::cerr << "cache contains: 0x" << std::hex << deviceID << std::endl;
+            std::cerr << "driver expects: 0x" << deviceProperties.deviceID << std::endl;
+            return false;
+        }
+
+        if (memcmp(pipelineCacheUUID, deviceProperties.pipelineCacheUUID, sizeof(pipelineCacheUUID)) != 0) {
+            std::cerr << "uuid mismatch in " << filename << std::endl;
+            std::cerr << "cache contains: " << std::endl;
+
+            auto fn = [](uint8_t* uuid) {
+                for(int i = 0; i < 16; i++) {
+                    std::cout << (int)uuid[i] << " ";
+                    if(i % 4 == 3)
+                        std::cerr << std::endl;
+                }
+                std::cerr << std::endl;
+            };
+            fn(pipelineCacheUUID);
+            std::cerr << "driver expects:" << std::endl;
+            fn(deviceProperties.pipelineCacheUUID);
+            return false;
+        }
+
+        return true;
+    }
+    return false;
+}
+
 void VK_ContextImpl::createGraphicsPiplelineCache()
 {
     auto buffer = readDataFromFile(vkConfig.pipelineCacheFile);
+    bool valid = appConfig.debug && isValidPipelineCacheData(vkConfig.pipelineCacheFile, buffer.data(), buffer.size());
 
     VkPipelineCacheCreateInfo PipelineCacheCreateInfo = {};
     PipelineCacheCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;
-    PipelineCacheCreateInfo.pNext = NULL;
-    PipelineCacheCreateInfo.initialDataSize = buffer.size();
-    PipelineCacheCreateInfo.pInitialData = buffer.data();
+    PipelineCacheCreateInfo.pNext = nullptr;
+    PipelineCacheCreateInfo.initialDataSize = valid ? buffer.size() : 0;
+    PipelineCacheCreateInfo.pInitialData = valid ? buffer.data() : nullptr;
 
     if (vkCreatePipelineCache(device, &PipelineCacheCreateInfo, nullptr, &pipelineCache) != VK_SUCCESS)
-        throw std::exception("creating pipeline cache error");
+        std::cerr << "creating pipeline cache error" << std::endl;
 }
 
 bool VK_ContextImpl::saveGraphicsPiplineCache()

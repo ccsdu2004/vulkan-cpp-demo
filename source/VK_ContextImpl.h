@@ -71,6 +71,9 @@ public:
     bool createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory)override;
     void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size)override;
     uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties)override;
+
+    void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout);
+    void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height);
 private:
     void recreateSwapChain();
 
@@ -117,9 +120,13 @@ private:
     QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
     std::vector<const char*> getRequiredExtensions();
     bool checkValidationLayerSupport();
+
+    VkCommandBuffer beginSingleTimeCommands();
+    void endSingleTimeCommands(VkCommandBuffer commandBuffer);
 private:
     void initClearColorAndDepthStencil();
     void initColorBlendAttachmentState();
+    void initViewport();
 private:
     VK_ContextConfig appConfig;
     VK_Config vkConfig;
@@ -171,6 +178,7 @@ private:
     VK_UniformBuffer* vkUniformBuffer = nullptr;
 
     bool vkNeedUpdateSwapChain = false;
+    VkViewport vkViewport;
     VkClearValue vkClearValue;
     VkPipelineColorBlendAttachmentState vkColorBlendAttachment{};
 };

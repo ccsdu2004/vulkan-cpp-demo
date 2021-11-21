@@ -10,15 +10,14 @@ public:
     VK_UniformBufferImpl(VK_Context* vkContext, VkDevice vkDevice, uint32_t bufferSize);
     ~VK_UniformBufferImpl();
 public:
-    void cleanup()override;
-    void initDescriptorSets(VkDescriptorSetLayout descriptorSetLayout, VkDeviceSize swapImageChainSize, VkDescriptorPool pool)override;
+    void initBuffer(VkDeviceSize swapImageChainSize)override;
+    void initDescriptorSetLayout(VkDescriptorSetLayout descriptorSetLayout, VkDeviceSize swapImageChainSize, VkDescriptorPool pool)override;
+    void clearBuffer()override;
     void release()override;
 
     void setWriteDataCallback(std::function<uint32_t(char*&, uint32_t)> cb)override;
     void bindDescriptorSets(uint32_t index, VkCommandBuffer commandBuffer, VkPipelineLayout pipelineLayout)override;
-    void update(uint32_t index, float aspect)override;
-
-    void initBuffer(VkDeviceSize swapImageChainSize);
+    void update(uint32_t index)override;
 protected:
     VK_Context* context = nullptr;
     VkDevice device = nullptr;
@@ -30,6 +29,7 @@ protected:
     std::vector<VkBuffer> uniformBuffers;
     std::vector<VkDeviceMemory> uniformBuffersMemory;
     std::vector<VkDescriptorSet> descriptorSets;
+    bool needClear = false;
 };
 
 #endif // VK_UNIFORMBUFFERIMPL_H

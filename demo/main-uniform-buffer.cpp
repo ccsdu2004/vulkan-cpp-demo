@@ -19,24 +19,6 @@ const std::vector<uint16_t> indices = {
 
 VK_Context* context = nullptr;
 
-void onMouseButtonCallback(int button, int action, int mods)
-{
-    auto blend = context->getColorBlendAttachmentState();
-    if(button) {
-        blend.blendEnable = VK_TRUE;
-        blend.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
-        blend.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-        blend.colorBlendOp = VK_BLEND_OP_ADD;
-        blend.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
-        blend.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
-        blend.alphaBlendOp = VK_BLEND_OP_ADD;
-        context->setColorBlendAttachmentState(blend);
-    } else {
-        blend.blendEnable = VK_FALSE;
-        context->setColorBlendAttachmentState(blend);
-    }
-}
-
 uint32_t updateUniformBufferData(char* & data, uint32_t size)
 {
     static auto startTime = std::chrono::high_resolution_clock::now();
@@ -50,9 +32,8 @@ uint32_t updateUniformBufferData(char* & data, uint32_t size)
 int main()
 {
     VK_ContextConfig config;
-    config.debug = false;
+    config.debug = true;
     config.name = "Uniform Demo";
-    config.mouseCallback = &onMouseButtonCallback;
 
     context = createVkContext(config);
     context->createWindow(640, 480, true);

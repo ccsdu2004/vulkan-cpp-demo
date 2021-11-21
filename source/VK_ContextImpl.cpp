@@ -212,6 +212,9 @@ void VK_ContextImpl::cleanupSwapChain()
 
     vkDestroySwapchainKHR(device, swapChain, nullptr);
 
+    if(vkUniformBuffer)
+        vkUniformBuffer->clearBuffer();
+
     vkDestroyDescriptorPool(device, descriptorPool, nullptr);
 }
 
@@ -278,10 +281,15 @@ void VK_ContextImpl::recreateSwapChain()
     createGraphicsPipeline();
     createFramebuffers();
 
+    if(vkUniformBuffer) {
+        vkUniformBuffer->initBuffer(swapChainImageViews.size());
+    }
+
     createDescriptorPool();
 
-    if(vkUniformBuffer)
-        vkUniformBuffer->initDescriptorSets(descriptorSetLayout, swapChainImages.size(), descriptorPool);
+    if(vkUniformBuffer) {
+        vkUniformBuffer->initDescriptorSetLayout(descriptorSetLayout, swapChainImageViews.size(), descriptorPool);
+    }
 
     createCommandBuffers();
 
@@ -776,7 +784,7 @@ VK_UniformBuffer *VK_ContextImpl::createUniformBuffer(uint32_t bufferSize)
 {
     auto buffer = new VK_UniformBufferImpl(this, device, bufferSize);
     buffer->initBuffer(swapChainImageViews.size());
-    buffer->initDescriptorSets(descriptorSetLayout, swapChainImageViews.size(), descriptorPool);
+    buffer->initDescriptorSetLayout(descriptorSetLayout, swapChainImageViews.size(), descriptorPool);
     return buffer;
 }
 
@@ -1067,7 +1075,7 @@ void VK_ContextImpl::drawFrame()
     }
 
     if(vkUniformBuffer)
-        vkUniformBuffer->update(imageIndex, 640.0f / 480.0f);
+        vkUniformBuffer->update(imageIndex);
 
     if (imagesInFlight[imageIndex] != VK_NULL_HANDLE) {
         vkWaitForFences(device, 1, &imagesInFlight[imageIndex], VK_TRUE, UINT64_MAX);

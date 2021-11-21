@@ -9,7 +9,7 @@ class VK_ShaderSet : public VK_Deleter
 {
 public:
     virtual bool addShader(const std::string &spvFile, VkShaderStageFlagBits type,
-                           const std::string &entryPoint = std::string("main")) = 0;
+                           const char* entryPoint = "main") = 0;
     virtual bool isValid() = 0;
     virtual VkPipelineShaderStageCreateInfo* getCreateInfoData() = 0;
     virtual int getCreateInfoCount() = 0;

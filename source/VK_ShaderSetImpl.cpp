@@ -20,7 +20,7 @@ void VK_ShaderSetImpl::release()
     delete this;
 }
 
-bool VK_ShaderSetImpl::addShader(const std::string &spvFile, VkShaderStageFlagBits type, const std::string &entryPoint)
+bool VK_ShaderSetImpl::addShader(const std::string &spvFile, VkShaderStageFlagBits type, const char* entryPoint)
 {
     auto module = createShaderModule(spvFile);
     if(!module)
@@ -36,7 +36,7 @@ bool VK_ShaderSetImpl::addShader(const std::string &spvFile, VkShaderStageFlagBi
     VkPipelineShaderStageCreateInfo createInfo{};
     createInfo.stage = type;
     createInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-    createInfo.pName = entryPoint.data();
+    createInfo.pName = entryPoint;
     createInfo.module = module;
 
     shaderStageCreateInfos.push_back(createInfo);

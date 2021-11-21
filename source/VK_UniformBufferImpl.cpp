@@ -43,18 +43,6 @@ void VK_UniformBufferImpl::bindDescriptorSets(uint32_t index, VkCommandBuffer co
 
 void VK_UniformBufferImpl::update(uint32_t index, float aspect)
 {
-    /*static auto startTime = std::chrono::high_resolution_clock::now();
-
-    auto currentTime = std::chrono::high_resolution_clock::now();
-    float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
-
-    glm::mat4 model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-
-    void* data;
-    vkMapMemory(device, uniformBuffersMemory[index], 0, sizeof(model), 0, &data);
-    memcpy(data, &model[0][0], sizeof(model));
-    vkUnmapMemory(device, uniformBuffersMemory[index]);*/
-
     if(!writeDataCallback) {
         std::cerr << "please set write data callback function" << std::endl;
     }
@@ -103,15 +91,15 @@ void VK_UniformBufferImpl::initDescriptorSets(VkDescriptorSetLayout descriptorSe
         bufferInfo.offset = 0;
         bufferInfo.range = bufferSize;
 
-        VkWriteDescriptorSet descriptorWrite{};
-        descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrite.dstSet = descriptorSets[i];
-        descriptorWrite.dstBinding = 0;
-        descriptorWrite.dstArrayElement = 0;
-        descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        descriptorWrite.descriptorCount = 1;
-        descriptorWrite.pBufferInfo = &bufferInfo;
+        std::array<VkWriteDescriptorSet, 1> descriptorWrites;
+        descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWrites[0].dstSet = descriptorSets[i];
+        descriptorWrites[0].dstBinding = 0;
+        descriptorWrites[0].dstArrayElement = 0;
+        descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        descriptorWrites[0].descriptorCount = 1;
+        descriptorWrites[0].pBufferInfo = &bufferInfo;
 
-        vkUpdateDescriptorSets(device, 1, &descriptorWrite, 0, nullptr);
+        vkUpdateDescriptorSets(device, descriptorWrites.size(), descriptorWrites.data(), 0, nullptr);
     }
 }

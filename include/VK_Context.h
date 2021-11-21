@@ -5,9 +5,12 @@
 #include <functional>
 #include "VK_ShaderSet.h"
 #include "VK_Buffer.h"
+#include "VK_Viewports.h"
 
 class VK_Buffer;
 class VK_UniformBuffer;
+class VK_Image;
+class VK_Texture;
 class VK_Context;
 class VulKanAppData;
 
@@ -25,6 +28,11 @@ public:
     virtual bool createCommandBuffers() = 0;
     virtual bool run() = 0;
 public:
+    virtual VkExtent2D getSwapChainExtent()const = 0;
+
+    virtual VK_Viewports getViewports()const = 0;
+    virtual void setViewports(const VK_Viewports& viewport) = 0;
+
     virtual void setClearColor(float r, float f, float b, float a) = 0;
     virtual void setClearDepthStencil(float depth, uint32_t stencil) = 0;
 
@@ -36,6 +44,12 @@ public:
     virtual VK_Buffer* createVertexBuffer(const std::vector<VK_Vertex>& vertices, const std::vector<uint16_t>& indices = std::vector<uint16_t>()) = 0;
     virtual void addBuffer(VK_Buffer* buffer) = 0;
     virtual void removeBuffer(VK_Buffer* buffer) = 0;
+
+    virtual VK_Image* createImage(const std::string& image) = 0;
+
+    virtual VkImageViewCreateInfo createImageViewCreateInfo(VkImage image, VkFormat format) = 0;
+    virtual VkSamplerCreateInfo createSamplerCreateInfo() = 0;
+    virtual VK_Texture* createTexture(const VkImageViewCreateInfo& viewCreateInfo, const VkSamplerCreateInfo& samplerInfo) = 0;
 
     virtual VK_UniformBuffer* createUniformBuffer(uint32_t bufferSize) = 0;
     virtual void setUniformBuffer(VK_UniformBuffer* uniformBuffer) = 0;

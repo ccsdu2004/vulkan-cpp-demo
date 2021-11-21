@@ -29,6 +29,18 @@ struct SwapChainSupportDetails {
     std::vector<VkPresentModeKHR> presentModes;
 };
 
+template<class I>
+void cleanVulkanObjectContainer(const std::list<I*>& container)
+{
+    while(true) {
+        auto itr = container.begin();
+        if (itr == container.end())
+            break;
+        else
+            (*itr)->release();
+    }
+}
+
 class VK_ContextImpl : public VK_Context
 {
     const std::vector<const char*> validationLayers = {
@@ -53,6 +65,11 @@ public:
     bool createCommandBuffers()override;
     bool run()override;
 public:
+    VkExtent2D getSwapChainExtent()const override;
+
+    VK_Viewports getViewports()const override;
+    void setViewports(const VK_Viewports& viewport)override;
+public:
     void setClearColor(float r, float g, float b, float a)override;
     void setClearDepthStencil(float depth, uint32_t stencil)override;
 
@@ -64,6 +81,14 @@ public:
     VK_Buffer* createVertexBuffer(const std::vector<VK_Vertex>& vertices, const std::vector<uint16_t>& indices = std::vector<uint16_t>())override;
     void removeBuffer(VK_Buffer* buffer)override;
     void addBuffer(VK_Buffer* buffer)override;
+public:
+    VK_Image* createImage(const std::string& image)override;
+    void onReleaseImage(VK_Image* image);
+public:
+    VkImageViewCreateInfo createImageViewCreateInfo(VkImage image, VkFormat format)override;
+    VkSamplerCreateInfo createSamplerCreateInfo()override;
+    VK_Texture* createTexture(const VkImageViewCreateInfo& viewCreateInfo, const VkSamplerCreateInfo& samplerInfo)override;
+    void onReleaseTexture(VK_Texture* texture);
 
     VK_UniformBuffer* createUniformBuffer(uint32_t bufferSize)override;
     void setUniformBuffer(VK_UniformBuffer* uniformBuffer)override;
@@ -82,10 +107,10 @@ private:
 
     bool createInstance();
     void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo);
-    void setupDebugMessenger();
-    void createSurface();
-    void pickPhysicalDevice();
-    void createLogicalDevice();
+    bool setupDebugMessenger();
+    bool createSurface();
+    bool pickPhysicalDevice();
+    bool createLogicalDevice();
     void createSwapChain();
     void createImageViews();
     void createRenderPass();
@@ -148,8 +173,9 @@ private:
     VkSwapchainKHR swapChain;
     std::vector<VkImage> swapChainImages;
     VkFormat swapChainImageFormat;
-    VkExtent2D swapChainExtent;
-    std::vector<VkImageView> swapChainImageViews;
+    VkExtent2D vkSwapChainExtent;
+
+    std::vector<VK_Texture*> swapChainImageViews;
     std::vector<VkFramebuffer> swapChainFramebuffers;
 
     VkRenderPass renderPass;
@@ -178,9 +204,13 @@ private:
     VK_UniformBuffer* vkUniformBuffer = nullptr;
 
     bool vkNeedUpdateSwapChain = false;
-    VkViewport vkViewport;
+    VK_Viewports vkViewports;
+
     VkClearValue vkClearValue;
     VkPipelineColorBlendAttachmentState vkColorBlendAttachment{};
+
+    std::list<VK_Image*> vkImageList;
+    std::list<VK_Texture*> vkTextureList;
 };
 
 

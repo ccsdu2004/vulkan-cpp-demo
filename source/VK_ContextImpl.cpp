@@ -7,6 +7,8 @@
 #include "VK_Buffer.h"
 #include "VK_VertexBuffer.h"
 #include "VK_UniformBufferImpl.h"
+#include "VK_ImageImpl.h"
+#include "VK_TextureImpl.h"
 #include "VK_Util.h"
 
 VK_Context* createVkContext(const VK_ContextConfig& config)
@@ -76,19 +78,16 @@ bool VK_ContextImpl::initVulkan(const VK_Config& config)
 {
     vkConfig = config;
 
-    createInstance();
+    if(!(createInstance() &&
+         setupDebugMessenger() &&
+         createSurface() &&
+         pickPhysicalDevice()))
+        return false;
 
-    setupDebugMessenger();
-    createSurface();
-
-    pickPhysicalDevice();
     createLogicalDevice();
-
     createGraphicsPiplelineCache();
-
     createSwapChain();
     createImageViews();
-
     createRenderPass();
     createDescriptorSetLayout();
 
@@ -100,6 +99,7 @@ bool VK_ContextImpl::initVulkan(const VK_Config& config)
 
     initClearColorAndDepthStencil();
     initColorBlendAttachmentState();
+    initViewport();
     return true;
 }
 
@@ -129,6 +129,24 @@ bool VK_ContextImpl::run()
     vkDeviceWaitIdle(device);
     cleanup();
     return true;
+}
+
+VkExtent2D VK_ContextImpl::getSwapChainExtent() const
+{
+    return vkSwapChainExtent;
+}
+
+VK_Viewports VK_ContextImpl::getViewports() const
+{
+    return vkViewports;
+}
+
+void VK_ContextImpl::setViewports(const VK_Viewports &viewports)
+{
+    if(vkViewports != viewports) {
+        vkViewports = viewports;
+        vkNeedUpdateSwapChain = true;
+    }
 }
 
 void VK_ContextImpl::setClearColor(float r, float g, float b, float a)
@@ -188,9 +206,9 @@ void VK_ContextImpl::cleanupSwapChain()
     vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
     vkDestroyRenderPass(device, renderPass, nullptr);
 
-    for (auto imageView : swapChainImageViews) {
-        vkDestroyImageView(device, imageView, nullptr);
-    }
+    std::for_each(swapChainImageViews.begin(), swapChainImageViews.end(), [](VK_Texture * texture) {
+        texture->release();
+    });
 
     vkDestroySwapchainKHR(device, swapChain, nullptr);
 
@@ -213,6 +231,9 @@ void VK_ContextImpl::cleanup()
 
     if(vkUniformBuffer)
         vkUniformBuffer->release();
+
+    cleanVulkanObjectContainer(vkTextureList);
+    cleanVulkanObjectContainer(vkImageList);
 
     vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
 
@@ -318,33 +339,38 @@ void VK_ContextImpl::populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreat
     createInfo.pfnUserCallback = debugCallback;
 }
 
-void VK_ContextImpl::setupDebugMessenger()
+bool VK_ContextImpl::setupDebugMessenger()
 {
     if (!appConfig.debug)
-        return;
+        return true;
 
     VkDebugUtilsMessengerCreateInfoEXT createInfo;
     populateDebugMessengerCreateInfo(createInfo);
 
     if (createDebugUtilsMessengerEXT(instance, &createInfo, nullptr, &debugMessenger) != VK_SUCCESS) {
-        throw std::runtime_error("failed to set up debug messenger!");
+        std::cout << "failed to set up debug messenger!" << std::endl;
+        return false;
     }
+    return true;
 }
 
-void VK_ContextImpl::createSurface()
+bool VK_ContextImpl::createSurface()
 {
     if (glfwCreateWindowSurface(instance, window, nullptr, &surface) != VK_SUCCESS) {
-        throw std::runtime_error("failed to create window surface!");
+        std::cerr << "failed to create window surface!" << std::endl;
+        return false;
     }
+    return true;
 }
 
-void VK_ContextImpl::pickPhysicalDevice()
+bool VK_ContextImpl::pickPhysicalDevice()
 {
     uint32_t deviceCount = 0;
     vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
 
     if (deviceCount == 0) {
-        throw std::runtime_error("failed to find GPUs with Vulkan support!");
+        std::cerr << "failed to find GPUs with Vulkan support!" << std::endl;
+        return false;
     }
 
     std::vector<VkPhysicalDevice> devices(deviceCount);
@@ -359,13 +385,15 @@ void VK_ContextImpl::pickPhysicalDevice()
 
     if (physicalDevice == VK_NULL_HANDLE) {
         std::cerr << "failed to find a suitable GPU!" << std::endl;
+        return false;
     }
 
     vkGetPhysicalDeviceFeatures(physicalDevice, &deviceFeatures);
     vkGetPhysicalDeviceProperties(physicalDevice, &deviceProperties);
+    return true;
 }
 
-void VK_ContextImpl::createLogicalDevice()
+bool VK_ContextImpl::createLogicalDevice()
 {
     QueueFamilyIndices indices = findQueueFamilies(physicalDevice);
 
@@ -383,6 +411,8 @@ void VK_ContextImpl::createLogicalDevice()
     }
 
     VkPhysicalDeviceFeatures deviceFeatures{};
+    deviceFeatures.multiViewport = VK_TRUE;
+    deviceFeatures.samplerAnisotropy = VK_TRUE;
 
     VkDeviceCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
@@ -403,11 +433,13 @@ void VK_ContextImpl::createLogicalDevice()
     }
 
     if (vkCreateDevice(physicalDevice, &createInfo, nullptr, &device) != VK_SUCCESS) {
-        throw std::runtime_error("failed to create logical device!");
+        std::cerr << "failed to create logical device!" << std::endl;
+        return false;
     }
 
     vkGetDeviceQueue(device, indices.graphicsFamily.value(), 0, &graphicsQueue);
     vkGetDeviceQueue(device, indices.presentFamily.value(), 0, &presentQueue);
+    return true;
 }
 
 void VK_ContextImpl::createSwapChain()
@@ -459,7 +491,7 @@ void VK_ContextImpl::createSwapChain()
     vkGetSwapchainImagesKHR(device, swapChain, &imageCount, swapChainImages.data());
 
     swapChainImageFormat = surfaceFormat.format;
-    swapChainExtent = extent;
+    vkSwapChainExtent = extent;
 }
 
 void VK_ContextImpl::createImageViews()
@@ -467,24 +499,17 @@ void VK_ContextImpl::createImageViews()
     swapChainImageViews.resize(swapChainImages.size());
 
     for (size_t i = 0; i < swapChainImages.size(); i++) {
-        VkImageViewCreateInfo createInfo{};
-        createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-        createInfo.image = swapChainImages[i];
-        createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-        createInfo.format = swapChainImageFormat;
-        createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
-        createInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
-        createInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
-        createInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
-        createInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-        createInfo.subresourceRange.baseMipLevel = 0;
-        createInfo.subresourceRange.levelCount = 1;
-        createInfo.subresourceRange.baseArrayLayer = 0;
-        createInfo.subresourceRange.layerCount = 1;
+        VkImageViewCreateInfo viewCreateInfo = createImageViewCreateInfo(swapChainImages[i], swapChainImageFormat);
+        VkSamplerCreateInfo samplerCreateInfo = createSamplerCreateInfo();
+        samplerCreateInfo.anisotropyEnable = VK_FALSE;
 
-        if (vkCreateImageView(device, &createInfo, nullptr, &swapChainImageViews[i]) != VK_SUCCESS) {
-            throw std::runtime_error("failed to create image views!");
+        VK_TextureImpl* texture = new VK_TextureImpl(device, this);
+        texture->setRemoveFromContainerWhenRelease(false);
+        if(!texture->create(viewCreateInfo, samplerCreateInfo)) {
+            std::cerr << "failed to create image views!" << std::endl;
         }
+
+        swapChainImageViews[i] = texture;
     }
 }
 
@@ -680,6 +705,73 @@ void VK_ContextImpl::addBuffer(VK_Buffer * buffer)
         vkBuffers.push_back(buffer);
 }
 
+VK_Image *VK_ContextImpl::createImage(const std::string &image)
+{
+    auto ptr = new VK_ImageImpl(device, this);
+    if(!ptr->load(image)) {
+        delete ptr;
+        return nullptr;
+    }
+
+    vkImageList.push_back(ptr);
+    return ptr;
+}
+
+void VK_ContextImpl::onReleaseImage(VK_Image *image)
+{
+    if(image)
+        vkImageList.remove(image);
+}
+
+VkImageViewCreateInfo VK_ContextImpl::createImageViewCreateInfo(VkImage image, VkFormat format)
+{
+    VkImageViewCreateInfo viewInfo{};
+    viewInfo.pNext = nullptr;
+    viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+    viewInfo.image = image;
+    viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+    viewInfo.format = format;
+    viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    viewInfo.subresourceRange.baseMipLevel = 0;
+    viewInfo.subresourceRange.levelCount = 1;
+    viewInfo.subresourceRange.baseArrayLayer = 0;
+    viewInfo.subresourceRange.layerCount = 1;
+    return viewInfo;
+}
+
+VkSamplerCreateInfo VK_ContextImpl::createSamplerCreateInfo()
+{
+    VkSamplerCreateInfo samplerInfo{};
+    samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+    samplerInfo.magFilter = VK_FILTER_LINEAR;
+    samplerInfo.minFilter = VK_FILTER_LINEAR;
+    samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    samplerInfo.anisotropyEnable = VK_TRUE;
+    samplerInfo.maxAnisotropy = deviceProperties.limits.maxSamplerAnisotropy;
+    samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+    samplerInfo.unnormalizedCoordinates = VK_FALSE;
+    samplerInfo.compareEnable = VK_FALSE;
+    samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
+    samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+    return samplerInfo;
+}
+
+VK_Texture* VK_ContextImpl::createTexture(const VkImageViewCreateInfo &viewCreateInfo, const VkSamplerCreateInfo &samplerInfo)
+{
+    VK_TextureImpl* texture = new VK_TextureImpl(device, this);
+    texture->create(viewCreateInfo, samplerInfo);
+    vkTextureList.push_back(texture);
+    return texture;
+}
+
+void VK_ContextImpl::onReleaseTexture(VK_Texture *texture)
+{
+    if(texture)
+        vkTextureList.remove(texture);
+}
+
 VK_UniformBuffer *VK_ContextImpl::createUniformBuffer(uint32_t bufferSize)
 {
     auto buffer = new VK_UniformBufferImpl(this, device, bufferSize);
@@ -728,39 +820,13 @@ bool VK_ContextImpl::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, V
 
 void VK_ContextImpl::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size)
 {
-    VkCommandBufferAllocateInfo allocInfo{};
-    allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-    allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    allocInfo.commandPool = commandPool;
-    allocInfo.commandBufferCount = 1;
-    allocInfo.pNext = nullptr;
-
-    VkCommandBuffer commandBuffer;
-    vkAllocateCommandBuffers(device, &allocInfo, &commandBuffer);
-
-    VkCommandBufferBeginInfo beginInfo{};
-    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-    beginInfo.pNext = nullptr;
-
-    vkBeginCommandBuffer(commandBuffer, &beginInfo);
+    VkCommandBuffer commandBuffer = beginSingleTimeCommands();
 
     VkBufferCopy copyRegion{};
     copyRegion.size = size;
     vkCmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
 
-    vkEndCommandBuffer(commandBuffer);
-
-    VkSubmitInfo submitInfo{};
-    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-    submitInfo.commandBufferCount = 1;
-    submitInfo.pCommandBuffers = &commandBuffer;
-    submitInfo.pNext = nullptr;
-
-    vkQueueSubmit(graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
-    vkQueueWaitIdle(graphicsQueue);
-
-    vkFreeCommandBuffers(device, commandPool, 1, &commandBuffer);
+    endSingleTimeCommands(commandBuffer);
 }
 
 bool VK_ContextImpl::createGraphicsPipeline()
@@ -781,18 +847,12 @@ bool VK_ContextImpl::createGraphicsPipeline()
     inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
     inputAssembly.primitiveRestartEnable = VK_FALSE;
 
-    initViewport();
-
-    VkRect2D scissor{};
-    scissor.offset = {0, 0};
-    scissor.extent = swapChainExtent;
-
     VkPipelineViewportStateCreateInfo viewportState{};
     viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
-    viewportState.viewportCount = 1;
-    viewportState.pViewports = &vkViewport;
-    viewportState.scissorCount = 1;
-    viewportState.pScissors = &scissor;
+    viewportState.viewportCount = vkViewports.getViewportCount();
+    viewportState.pViewports = vkViewports.getViewportData();
+    viewportState.scissorCount = vkViewports.getViewportCount();
+    viewportState.pScissors = vkViewports.getScissorData();
 
     VkPipelineRasterizationStateCreateInfo rasterizer{};
     rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
@@ -860,7 +920,7 @@ void VK_ContextImpl::createFramebuffers()
 
     for (size_t i = 0; i < swapChainImageViews.size(); i++) {
         VkImageView attachments[] = {
-            swapChainImageViews[i]
+            swapChainImageViews[i]->getTextureImageView()
         };
 
         VkFramebufferCreateInfo framebufferInfo{};
@@ -868,8 +928,8 @@ void VK_ContextImpl::createFramebuffers()
         framebufferInfo.renderPass = renderPass;
         framebufferInfo.attachmentCount = 1;
         framebufferInfo.pAttachments = attachments;
-        framebufferInfo.width = swapChainExtent.width;
-        framebufferInfo.height = swapChainExtent.height;
+        framebufferInfo.width = vkSwapChainExtent.width;
+        framebufferInfo.height = vkSwapChainExtent.height;
         framebufferInfo.layers = 1;
 
         if (vkCreateFramebuffer(device, &framebufferInfo, nullptr, &swapChainFramebuffers[i]) != VK_SUCCESS) {
@@ -893,19 +953,21 @@ void VK_ContextImpl::createCommandPool()
 
 void VK_ContextImpl::createDescriptorPool()
 {
-    VkDescriptorPoolSize poolSize{};
-    poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    poolSize.descriptorCount = static_cast<uint32_t>(swapChainImages.size());
+    std::array<VkDescriptorPoolSize, 2> poolSizes{};
+    poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    poolSizes[0].descriptorCount = static_cast<uint32_t>(swapChainImages.size());
+    poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    poolSizes[1].descriptorCount = static_cast<uint32_t>(swapChainImages.size());
 
     VkDescriptorPoolCreateInfo poolInfo{};
     poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-    poolInfo.poolSizeCount = 1;
-    poolInfo.pPoolSizes = &poolSize;
+    poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
+    poolInfo.pPoolSizes = poolSizes.data();
     poolInfo.maxSets = static_cast<uint32_t>(swapChainImages.size());
     poolInfo.pNext = nullptr;
 
     if (vkCreateDescriptorPool(device, &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS) {
-        throw std::runtime_error("failed to create descriptor pool!");
+        std::cerr << "failed to create descriptor pool!" << std::endl;
     }
 }
 
@@ -937,7 +999,7 @@ bool VK_ContextImpl::createCommandBuffers()
         renderPassInfo.renderPass = renderPass;
         renderPassInfo.framebuffer = swapChainFramebuffers[i];
         renderPassInfo.renderArea.offset = {0, 0};
-        renderPassInfo.renderArea.extent = swapChainExtent;
+        renderPassInfo.renderArea.extent = vkSwapChainExtent;
 
         renderPassInfo.clearValueCount = 1;
         renderPassInfo.pClearValues = &vkClearValue;
@@ -1139,7 +1201,8 @@ bool VK_ContextImpl::isDeviceSuitable(VkPhysicalDevice device)
         swapChainAdequate = !swapChainSupport.formats.empty() && !swapChainSupport.presentModes.empty();
     }
 
-    return indices.isComplete() && extensionsSupported && swapChainAdequate;
+    vkGetPhysicalDeviceFeatures(device, &deviceFeatures);
+    return indices.isComplete() && extensionsSupported && swapChainAdequate && deviceFeatures.samplerAnisotropy;
 }
 
 bool VK_ContextImpl::checkDeviceExtensionSupport(VkPhysicalDevice device)
@@ -1246,12 +1309,7 @@ void VK_ContextImpl::initColorBlendAttachmentState()
 
 void VK_ContextImpl::initViewport()
 {
-    vkViewport.x = 0.0f;
-    vkViewport.y = 0.0f;
-    vkViewport.width = (float) swapChainExtent.width;
-    vkViewport.height = (float) swapChainExtent.height;
-    vkViewport.minDepth = 0.0f;
-    vkViewport.maxDepth = 1.0f;
+    vkViewports.addViewport(VK_Viewports::createViewport(vkSwapChainExtent.width, vkSwapChainExtent.height));
 }
 
 uint32_t VK_ContextImpl::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties)
@@ -1302,7 +1360,7 @@ void VK_ContextImpl::transitionImageLayout(VkImage image, VkFormat format, VkIma
         sourceStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
         destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
     } else {
-        throw std::invalid_argument("unsupported layout transition!");
+        std::cerr << "unsupported layout transition!" << std::endl;
     }
 
     vkCmdPipelineBarrier(

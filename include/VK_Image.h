@@ -5,7 +5,8 @@
 class VK_Image : public VK_Deleter
 {
 public:
-
+    virtual int getWidth()const = 0;
+    virtual int getHeight()const = 0;
 };
 
 #endif // VK_IMAGE_HPP

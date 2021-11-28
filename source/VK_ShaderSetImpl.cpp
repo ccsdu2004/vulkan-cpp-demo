@@ -1,5 +1,5 @@
 #include <vector>
-#include <fstream>
+#include <numeric>
 #include <iostream>
 #include "VK_ShaderSetImpl.h"
 #include "VK_Util.h"
@@ -7,6 +7,10 @@
 VK_ShaderSetImpl::VK_ShaderSetImpl(VkDevice device):
     vkDevice(device)
 {
+    appendAttributeDescription(0, 3 * sizeof(float));
+    appendAttributeDescription(1, 4 * sizeof(float));
+    appendAttributeDescription(2, 3 * sizeof(float));
+    appendAttributeDescription(3, 2 * sizeof(float));
 }
 
 VK_ShaderSetImpl::~VK_ShaderSetImpl()
@@ -18,6 +22,61 @@ void VK_ShaderSetImpl::release()
     for(auto itr = shaderStageCreateInfos.begin(); itr != shaderStageCreateInfos.end(); itr++)
         vkDestroyShaderModule(vkDevice, itr->module, nullptr);
     delete this;
+}
+
+void VK_ShaderSetImpl::appendAttributeDescription(int index, int size)
+{
+    if(index == 0)
+        sizeTable.clear();
+
+    if(sizeTable.size() != (size_t)index)
+        return;
+
+    if(size != 2 * sizeof(float) &&
+       size != 3 * sizeof(float) &&
+       size != 4 * sizeof(float))
+        return;
+
+    sizeTable.push_back(size);
+    vertexInputAttributeDescriptions.resize(sizeTable.size());
+
+    auto fn = [](int size)->VkFormat {
+        if(size == 2 * sizeof (float))
+            return VK_FORMAT_R32G32_SFLOAT;
+        else if(size == 3 * sizeof (float))
+            return VK_FORMAT_R32G32B32_SFLOAT;
+        else if(size == 4 * sizeof (float))
+            return VK_FORMAT_R32G32B32A32_SFLOAT;
+        return VK_FORMAT_R32G32B32A32_SFLOAT;
+    };
+
+    int offset = 0;
+    for(size_t i = 0; i < sizeTable.size(); i++) {
+        vertexInputAttributeDescriptions[i].binding = 0;
+        vertexInputAttributeDescriptions[i].location = i;
+        vertexInputAttributeDescriptions[i].format = fn(sizeTable[i]);
+        vertexInputAttributeDescriptions[i].offset = offset;
+        offset += sizeTable[i];
+    }
+}
+
+VkVertexInputBindingDescription* VK_ShaderSetImpl::getBindingDescription()
+{
+    bindingDescription.binding = 0;
+    bindingDescription.stride = std::accumulate(sizeTable.begin(), sizeTable.end(), 0);
+    bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+
+    return &bindingDescription;
+}
+
+size_t VK_ShaderSetImpl::getAttributeDescriptionCount()const
+{
+    return vertexInputAttributeDescriptions.size();
+}
+
+const VkVertexInputAttributeDescription* VK_ShaderSetImpl::getAttributeDescriptionData()const
+{
+    return vertexInputAttributeDescriptions.data();
 }
 
 bool VK_ShaderSetImpl::addShader(const std::string &spvFile, VkShaderStageFlagBits type, const char* entryPoint)
@@ -45,7 +104,8 @@ bool VK_ShaderSetImpl::addShader(const std::string &spvFile, VkShaderStageFlagBi
 
 bool VK_ShaderSetImpl::isValid()
 {
-    bool hasV = false, hasFs = false;
+    bool hasV = false;
+    bool hasFs = false;
     auto itr = shaderStageCreateInfos.begin();
     while(itr != shaderStageCreateInfos.end()) {
         if(itr->stage == VK_SHADER_STAGE_VERTEX_BIT)
@@ -62,7 +122,7 @@ VkPipelineShaderStageCreateInfo* VK_ShaderSetImpl::getCreateInfoData()
     return shaderStageCreateInfos.data();
 }
 
-int VK_ShaderSetImpl::getCreateInfoCount()
+size_t VK_ShaderSetImpl::getCreateInfoCount()
 {
     return shaderStageCreateInfos.size();
 }

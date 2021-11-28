@@ -9,7 +9,6 @@
 #include <list>
 #include <array>
 #include <iostream>
-#include <fstream>
 #include "VK_Context.h"
 #include "VK_UniformBuffer.h"
 
@@ -29,8 +28,8 @@ struct SwapChainSupportDetails {
     std::vector<VkPresentModeKHR> presentModes;
 };
 
-template<class I>
-void cleanVulkanObjectContainer(const std::list<I*>& container)
+template<class C>
+void cleanVulkanObjectContainer(C& container)
 {
     while(true) {
         auto itr = container.begin();
@@ -60,7 +59,11 @@ public:
     void release()override;
 public:
     bool createWindow(int width, int height, bool resize)override;
-    bool initVulkan(const VK_Config& config)override;
+    void setOnFrameSizeChanged(std::function<void(int, int)> cb) override;
+
+    bool initVulkanDevice(const VK_Config& config)override;
+    bool initVulkanContext()override;
+
     bool initPipeline(VK_ShaderSet* shaderSet)override;
     bool createCommandBuffers()override;
     bool run()override;
@@ -73,25 +76,39 @@ public:
     void setClearColor(float r, float g, float b, float a)override;
     void setClearDepthStencil(float depth, uint32_t stencil)override;
 
+    void setDescriptorSetLayoutBindingGroup(const VK_DescriptorSetLayoutBindingGroup& group)override;
+    VK_DescriptorSetLayoutBindingGroup getDescriptorSetLayoutBindingGroup()const override;
+
+    void setDescriptorPoolSizeGroup(const VK_VkDescriptorPoolSizeGroup& group)override;
+    VK_VkDescriptorPoolSizeGroup getDescriptorPoolSizeGroup()const override;
+
     VkPipelineColorBlendAttachmentState getColorBlendAttachmentState()override;
     void setColorBlendAttachmentState(const VkPipelineColorBlendAttachmentState& state)override;
 public:
+    void setDynamicState(VkDynamicState dynamicState)override;
+    VkPipelineDynamicStateCreateInfo createDynamicStateCreateInfo(
+        VkPipelineDynamicStateCreateFlags flags = 0);
+public:
     VK_ShaderSet* createShaderSet()override;
 
+    VK_Buffer* createVertexBuffer(const std::vector<float>& vertices, uint32_t count, const std::vector<uint16_t>& indices = std::vector<uint16_t>())override;
     VK_Buffer* createVertexBuffer(const std::vector<VK_Vertex>& vertices, const std::vector<uint16_t>& indices = std::vector<uint16_t>())override;
     void removeBuffer(VK_Buffer* buffer)override;
     void addBuffer(VK_Buffer* buffer)override;
 public:
     VK_Image* createImage(const std::string& image)override;
     void onReleaseImage(VK_Image* image);
-public:
-    VkImageViewCreateInfo createImageViewCreateInfo(VkImage image, VkFormat format)override;
-    VkSamplerCreateInfo createSamplerCreateInfo()override;
-    VK_Texture* createTexture(const VkImageViewCreateInfo& viewCreateInfo, const VkSamplerCreateInfo& samplerInfo)override;
-    void onReleaseTexture(VK_Texture* texture);
 
-    VK_UniformBuffer* createUniformBuffer(uint32_t bufferSize)override;
-    void setUniformBuffer(VK_UniformBuffer* uniformBuffer)override;
+    VK_Sampler* createSampler(const VkSamplerCreateInfo& samplerInfo)override;
+    void removeSampler(VK_Sampler* sampler);
+
+    VK_ImageView* createImageView(const VkImageViewCreateInfo& viewCreateInfo)override;
+    void addImageView(VK_ImageView* imageView)override;
+    void removeImageView(VK_ImageView* imageView);
+
+    VK_UniformBuffer* createUniformBuffer(uint32_t binding, uint32_t bufferSize)override;
+    void addUniformBuffer(VK_UniformBuffer* uniformBuffer)override;
+    void removeUniformBuffer(VK_UniformBuffer* uniforBuffer);
 public:
     bool createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory)override;
     void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size)override;
@@ -111,8 +128,8 @@ private:
     bool createSurface();
     bool pickPhysicalDevice();
     bool createLogicalDevice();
-    void createSwapChain();
-    void createImageViews();
+    bool createSwapChain();
+    bool createSwapChainImageViews();
     void createRenderPass();
     bool createDescriptorSetLayout();
 
@@ -123,9 +140,19 @@ private:
 
     void createFramebuffers();
 
-    void createCommandPool();
+    bool createCommandPool();
+
+    void createDepthResources();
+
+    VkFormat findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
+
+    VkFormat findDepthFormat();
+
+    bool hasStencilComponent(VkFormat format);
 
     void createDescriptorPool();
+
+    void createDescriptorSets();
 
     void createSyncObjects();
 
@@ -157,6 +184,7 @@ private:
     VK_Config vkConfig;
 
     GLFWwindow* window = nullptr;
+    std::function<void(int, int)> windowSizeChangedCallback;
 
     VkInstance instance;
     VkDebugUtilsMessengerEXT debugMessenger;
@@ -175,20 +203,26 @@ private:
     VkFormat swapChainImageFormat;
     VkExtent2D vkSwapChainExtent;
 
-    std::vector<VK_Texture*> swapChainImageViews;
+    std::vector<VK_ImageView*> swapChainImageViews;
     std::vector<VkFramebuffer> swapChainFramebuffers;
 
     VkRenderPass renderPass;
+    VK_DescriptorSetLayoutBindingGroup vkDescriptorSetLayoutBindingGroup;
     VkDescriptorSetLayout descriptorSetLayout = 0;
+
+    VK_VkDescriptorPoolSizeGroup vkDescriptorPoolSizeGroup;
+
+    std::vector<VkDynamicState> vkDynamicStates;
 
     VkPipelineLayout pipelineLayout;
     VkPipeline graphicsPipeline = 0;
     VkPipelineCache pipelineCache = 0;
 
-    VkCommandPool commandPool;
+    VkCommandPool commandPool = 0;
     std::vector<VkCommandBuffer> commandBuffers;
 
     VkDescriptorPool descriptorPool = 0;
+    std::vector<VkDescriptorSet> descriptorSets;
 
     std::vector<VkSemaphore> imageAvailableSemaphores;
     std::vector<VkSemaphore> renderFinishedSemaphores;
@@ -201,7 +235,7 @@ private:
     VK_ShaderSet* vkShaderSet = nullptr;
     std::list<VK_Buffer*> vkBuffers;
 
-    VK_UniformBuffer* vkUniformBuffer = nullptr;
+    std::list<VK_UniformBuffer*> vkUniformBuffers;
 
     bool vkNeedUpdateSwapChain = false;
     VK_Viewports vkViewports;
@@ -210,7 +244,9 @@ private:
     VkPipelineColorBlendAttachmentState vkColorBlendAttachment{};
 
     std::list<VK_Image*> vkImageList;
-    std::list<VK_Texture*> vkTextureList;
+    std::list<VK_Sampler*> vkSamplerList;
+    std::list<VK_ImageView*> vkImageViewList;
+    std::set<VK_ImageView*> vkUnusedImageViewList;
 };
 
 

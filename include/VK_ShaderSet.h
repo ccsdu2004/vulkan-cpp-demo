@@ -1,18 +1,22 @@
 #ifndef VK_SHADERSET_H
 #define VK_SHADERSET_H
-#define GLFW_INCLUDE_VULKAN
-#include <GLFW/glfw3.h>
 #include <vector>
+#include <vulkan/vulkan.h>
 #include "VK_Deleter.h"
 
 class VK_ShaderSet : public VK_Deleter
 {
 public:
+    virtual void appendAttributeDescription(int index, int size) = 0;
+    virtual VkVertexInputBindingDescription* getBindingDescription() = 0;
+    virtual size_t getAttributeDescriptionCount()const = 0;
+    virtual const VkVertexInputAttributeDescription* getAttributeDescriptionData()const = 0;
+
     virtual bool addShader(const std::string &spvFile, VkShaderStageFlagBits type,
                            const char* entryPoint = "main") = 0;
     virtual bool isValid() = 0;
     virtual VkPipelineShaderStageCreateInfo* getCreateInfoData() = 0;
-    virtual int getCreateInfoCount() = 0;
+    virtual size_t getCreateInfoCount() = 0;
 };
 
 #endif // VK_SHADERSET_H

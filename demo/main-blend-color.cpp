@@ -3,20 +3,20 @@
 
 using namespace std;
 
-const std::vector<VK_Vertex> vertices1 = {
-    {{0.0f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f, 0.5f}, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
-    {{0.5f, 0.5f, 0.0f}, {0.0f, 0.0f, 0.0f, 0.5f}, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
-    {{-0.5f, 0.5f, 0.0f}, {1.0f, 0.0f, 0.0f, 0.5f}, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f}}
+const std::vector<float> vertices1 = {
+    0.0f, -0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 0.5f,
+    0.5f, 0.5f, 0.0f, 0.0f, 0.0f, 0.0f, 0.5f,
+    -0.5f, 0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 0.5f
 };
 
-const std::vector<VK_Vertex> vertices2 = {
-    {{-0.5f, -0.3f, 0.0f}, {1.0f, 1.0f, 1.0f, 0.5f}, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
-    {{0.5f, -0.3f, 0.0f}, {1.0f, 1.0f, 1.0f, 0.5f}, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
-    {{0.5f, 0.3f, 0.0f}, {1.0f, 1.0f, 1.0f, 0.5f}, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
-    {{0.5f, 0.3f, 0.0f}, {1.0f, 1.0f, 1.0f, 0.5f}, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
-    {{-0.5f, 0.3f, 0.0f}, {1.0f, 1.0f, 1.0f, 0.5f}, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
-    {{-0.5f, -0.3f, 0.0f}, {1.0f, 1.0f, 1.0f, 0.5f}, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
-};
+const std::vector<float> vertices2 = {
+    -0.5f, -0.3f, 0.0f, 1.0f, 1.0f, 1.0f, 0.5f,
+        0.5f, -0.3f, 0.0f, 1.0f, 1.0f, 1.0f, 0.5f,
+        0.5f, 0.3f, 0.0f, 1.0f, 1.0f, 1.0f, 0.5f,
+        0.5f, 0.3f, 0.0f, 1.0f, 1.0f, 1.0f, 0.5f,
+        -0.5f, 0.3f, 0.0f, 1.0f, 1.0f, 1.0f, 0.5f,
+        -0.5f, -0.3f, 0.0f, 1.0f, 1.0f, 1.0f, 0.5f
+    };
 
 VK_Context* context = nullptr;
 
@@ -50,11 +50,14 @@ int main()
     context->createWindow(640, 480, true);
 
     VK_Context::VK_Config vkConfig;
-    context->initVulkan(vkConfig);
+    context->initVulkanDevice(vkConfig);
 
     auto shaderSet = context->createShaderSet();
     shaderSet->addShader("shader/vertex/vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
     shaderSet->addShader("shader/vertex/frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+
+    shaderSet->appendAttributeDescription(0, sizeof (float) * 3);
+    shaderSet->appendAttributeDescription(1, sizeof (float) * 4);
 
     if(!shaderSet->isValid()) {
         std::cerr << "invalid shaderSet" << std::endl;
@@ -63,12 +66,13 @@ int main()
         return -1;
     }
 
+    context->initVulkanContext();
     context->initPipeline(shaderSet);
 
-    auto buffer = context->createVertexBuffer(vertices1);
+    auto buffer = context->createVertexBuffer(vertices1, 7);
     context->addBuffer(buffer);
 
-    buffer = context->createVertexBuffer(vertices2);
+    buffer = context->createVertexBuffer(vertices2, 7);
     context->addBuffer(buffer);
 
     context->createCommandBuffers();

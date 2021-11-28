@@ -10,11 +10,9 @@
 struct VK_Vertex {
     glm::vec3 position;
     glm::vec4 color;
-    glm::vec3 normal;
-    glm::vec2 texCoord;
 
     static VkVertexInputBindingDescription getBindingDescription();
-    static std::array<VkVertexInputAttributeDescription, 4> getAttributeDescriptions();
+    static std::array<VkVertexInputAttributeDescription, 2> getAttributeDescriptions();
 };
 
 #endif // VERTEX_H

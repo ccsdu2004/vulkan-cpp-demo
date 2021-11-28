@@ -1,15 +1,16 @@
 #ifndef VK_VIEWPORTS_H
 #define VK_VIEWPORTS_H
-#include <vulkan/vulkan.h>
 #include <vector>
+#include <vulkan/vulkan.h>
 
 class VK_Viewports
 {
 public:
-    static VkViewport createViewport(int width, int height);
-    static VkRect2D createScissor(int width, int height);
+    static VkViewport createViewport(uint32_t width, uint32_t height, float near = 0.0f, float far = 1.0f);
+    static VkRect2D createScissor(uint32_t width, uint32_t height);
 
     VK_Viewports() = default;
+    VK_Viewports(uint32_t width, uint32_t height);
     VK_Viewports(const VK_Viewports& viewports);
     VK_Viewports& operator =(const VK_Viewports& viewports);
     VK_Viewports(const VK_Viewports&& viewports);

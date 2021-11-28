@@ -9,10 +9,10 @@
 using namespace std;
 
 const std::vector<VK_Vertex> vertices = {
-    {{0.0f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f, 0.5f}, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
-    {{0.5f, 0.5f, 0.0f}, {0.0f, 1.0f, 0.0f, 0.5f}, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
-    {{-0.5f, 0.5f, 0.0f}, {0.0f, 0.0f, 1.0f, 0.5f}, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
-    {{0.5f, -0.5f, 0.0f}, {1.0f, 1.0f, 1.0f, 0.5f}, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
+    {{0.0f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f, 0.5f}},
+    {{0.5f, 0.5f, 0.0f}, {0.0f, 1.0f, 0.0f, 0.5f}},
+    {{-0.5f, 0.5f, 0.0f}, {0.0f, 0.0f, 1.0f, 0.5f}},
+    {{0.5f, -0.5f, 0.0f}, {1.0f, 1.0f, 1.0f, 0.5f}}
 };
 
 const std::vector<uint16_t> indices = {
@@ -38,7 +38,7 @@ void onMouseButtonCallback(int button, int action, int mods)
     newViewports.addViewport(vp2);
 
     auto scissor2 = VK_Viewports::createScissor(size.width >> 1, size.height);
-    scissor2.offset.x = size.width * 0.25;
+    scissor2.offset.x = size.width * 0.25f;
     newViewports.setScissor(0, scissor2);
 
     if(action) {
@@ -46,6 +46,14 @@ void onMouseButtonCallback(int button, int action, int mods)
     } else {
         context->setViewports(newViewports);
     }
+}
+
+void onFrameSizeChanged(int width, int height)
+{
+    auto vp = VK_Viewports::createViewport(width, height);
+    VK_Viewports vps;
+    vps.addViewport(vp);
+    context->setViewports(vps);
 }
 
 int main()
@@ -57,13 +65,17 @@ int main()
 
     context = createVkContext(config);
     context->createWindow(640, 480, true);
+    context->setOnFrameSizeChanged(onFrameSizeChanged);
 
     VK_Context::VK_Config vkConfig;
-    context->initVulkan(vkConfig);
+    context->initVulkanDevice(vkConfig);
 
     auto shaderSet = context->createShaderSet();
     shaderSet->addShader("shader/vertex/vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
     shaderSet->addShader("shader/vertex/frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+
+    shaderSet->appendAttributeDescription(0, sizeof (float) * 3);
+    shaderSet->appendAttributeDescription(1, sizeof (float) * 4);
 
     if(!shaderSet->isValid()) {
         std::cerr << "invalid shaderSet" << std::endl;
@@ -72,6 +84,7 @@ int main()
         return -1;
     }
 
+    context->initVulkanContext();
     context->initPipeline(shaderSet);
 
     viewports = context->getViewports();

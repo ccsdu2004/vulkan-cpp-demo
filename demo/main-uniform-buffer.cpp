@@ -3,14 +3,15 @@
 #include <glm/mat4x4.hpp>
 #include <glm/gtx/transform.hpp>
 #include "VK_UniformBuffer.h"
+#include "VK_DescriptorSetLayoutBindingGroup.h"
 #include "VK_Context.h"
 
 using namespace std;
 
-const std::vector<VK_Vertex> vertices = {
-    {{0.0f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f, 0.5f}, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
-    {{0.5f, 0.5f, 0.0f}, {0.0f, 1.0f, 0.0f, 0.5f}, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
-    {{-0.5f, 0.5f, 0.0f}, {0.0f, 0.0f, 1.0f, 0.5f}, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f}}
+const std::vector<float> vertices = {
+    0.0f, -0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 0.5f,
+    0.5f, 0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 0.5f,
+    -0.5f, 0.5f, 0.0f, 0.0f, 0.0f, 1.0f, 0.5
 };
 
 const std::vector<uint16_t> indices = {
@@ -29,6 +30,14 @@ uint32_t updateUniformBufferData(char* & data, uint32_t size)
     return sizeof(model);
 }
 
+void onFrameSizeChanged(int width, int height)
+{
+    auto vp = VK_Viewports::createViewport(width, height);
+    VK_Viewports vps;
+    vps.addViewport(vp);
+    context->setViewports(vps);
+}
+
 int main()
 {
     VK_ContextConfig config;
@@ -37,13 +46,17 @@ int main()
 
     context = createVkContext(config);
     context->createWindow(640, 480, true);
+    context->setOnFrameSizeChanged(onFrameSizeChanged);
 
     VK_Context::VK_Config vkConfig;
-    context->initVulkan(vkConfig);
+    context->initVulkanDevice(vkConfig);
 
     auto shaderSet = context->createShaderSet();
     shaderSet->addShader("shader/mvp/vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
     shaderSet->addShader("shader/mvp/frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+
+    shaderSet->appendAttributeDescription(0, sizeof (float) * 3);
+    shaderSet->appendAttributeDescription(1, sizeof (float) * 4);
 
     if(!shaderSet->isValid()) {
         std::cerr << "invalid shaderSet" << std::endl;
@@ -52,15 +65,28 @@ int main()
         return -1;
     }
 
-    context->initPipeline(shaderSet);
+    {
+        VK_DescriptorSetLayoutBindingGroup bindingGroup;
+        VkDescriptorSetLayoutBinding uniformBinding = VK_DescriptorSetLayoutBindingGroup::createDescriptorSetLayoutBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT);
+        bindingGroup.addDescriptorSetLayoutBinding(uniformBinding);
+        context->setDescriptorSetLayoutBindingGroup(bindingGroup);
+    }
 
-    auto buffer = context->createVertexBuffer(vertices, indices);
+    {
+        auto desciptorPoolSizeGroup = context->getDescriptorPoolSizeGroup();
+        desciptorPoolSizeGroup.addDescriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+        context->setDescriptorPoolSizeGroup(desciptorPoolSizeGroup);
+    }
+
+    auto buffer = context->createVertexBuffer(vertices, 3 + 4, indices);
     context->addBuffer(buffer);
 
-    auto ubo = context->createUniformBuffer(sizeof(GLfloat) * 16);
+    auto ubo = context->createUniformBuffer(0, sizeof(GLfloat) * 16);
     ubo->setWriteDataCallback(updateUniformBufferData);
-    context->setUniformBuffer(ubo);
+    context->addUniformBuffer(ubo);
 
+    context->initVulkanContext();
+    context->initPipeline(shaderSet);
     context->createCommandBuffers();
 
     context->run();

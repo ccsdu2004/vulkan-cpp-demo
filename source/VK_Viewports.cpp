@@ -1,25 +1,32 @@
 #include "VK_Viewports.h"
 #include "VK_Util.h"
 
-VkViewport VK_Viewports::createViewport(int width, int height)
+VkViewport VK_Viewports::createViewport(uint32_t width, uint32_t height, float near, float far)
 {
     VkViewport viewport;
     viewport.x = 0.0f;
     viewport.y = 0.0f;
     viewport.width = (float)width;
     viewport.height = (float)height;
-    viewport.minDepth = 0.0f;
-    viewport.maxDepth = 1.0f;
+    viewport.minDepth = near;
+    viewport.maxDepth = far;
     return viewport;
 }
 
-VkRect2D VK_Viewports::createScissor(int width, int height)
+VkRect2D VK_Viewports::createScissor(uint32_t width, uint32_t height)
 {
     VkRect2D scissor;
     scissor.offset = {0, 0};
     scissor.extent.width = width;
     scissor.extent.height = height;
     return scissor;
+}
+
+VK_Viewports::VK_Viewports(uint32_t width, uint32_t height)
+{
+    auto vp = createViewport(width, height);
+    addViewport(vp);
+    scissors[0] = createScissor(width, height);
 }
 
 VK_Viewports::VK_Viewports(const VK_Viewports &vKviewports):

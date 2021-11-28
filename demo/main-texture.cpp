@@ -10,10 +10,10 @@
 using namespace std;
 
 const std::vector<float> vertices = {
-    -0.5f, -0.5, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f,
+    -0.5f, -0.5, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 5.0f, 0.0f,
         0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f,
-        0.5f, 0.5f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f,
-        -0.5f, 0.5f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, 1.0f, 1.0f
+        0.5f, 0.5f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 5.0f,
+        -0.5f, 0.5f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, 5.0f, 5.0f
     };
 
 const std::vector<uint16_t> indices = {
@@ -70,6 +70,7 @@ int main()
         VkDescriptorSetLayoutBinding uniformBinding = VK_DescriptorSetLayoutBindingGroup::createDescriptorSetLayoutBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT);
         bindingGroup.addDescriptorSetLayoutBinding(uniformBinding);
         uniformBinding = VK_DescriptorSetLayoutBindingGroup::createDescriptorSetLayoutBinding(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
+        ;//uniformBinding.pImmutableSamplers =
         bindingGroup.addDescriptorSetLayoutBinding(uniformBinding);
         context->setDescriptorSetLayoutBindingGroup(bindingGroup);
     }
@@ -89,9 +90,12 @@ int main()
     context->addUniformBuffer(ubo);
 
     auto image = context->createImage("images/smile.png");
-    auto imageViewCreateInfo = VK_Texture::createImageViewCreateInfo(image->getImage(), VK_FORMAT_R8G8B8A8_SRGB);
-    auto samplerCreateInfo  = VK_Texture::createSamplerCreateInfo();
-    auto texture = context->createTexture(imageViewCreateInfo, samplerCreateInfo);
+    auto imageViewCreateInfo = VK_ImageView::createImageViewCreateInfo(image->getImage(), VK_FORMAT_R8G8B8A8_SRGB);
+    auto samplerCreateInfo  = VK_Sampler::createSamplerCreateInfo();
+    auto sampler = context->createSampler(samplerCreateInfo);
+    auto imageView = context->createImageView(imageViewCreateInfo);
+    imageView->setSampler(sampler->getSampler());
+    context->addImageView(imageView);
 
     context->initVulkanContext();
     context->initPipeline(shaderSet);

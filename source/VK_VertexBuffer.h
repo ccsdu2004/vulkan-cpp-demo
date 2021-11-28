@@ -12,6 +12,7 @@ public:
 public:
     void release()override;
 
+    void create(const std::vector<float>& vertices, int32_t count, const std::vector<uint16_t>& indices);
     void create(const std::vector<VK_Vertex>& vertices, const std::vector<uint16_t>& indices);
     void render(VkCommandBuffer command)override;
 private:

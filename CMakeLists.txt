@@ -25,6 +25,8 @@ add_library(
      include/VK_Buffer.h
      include/VK_Vertex.h
      include/VK_Context.h
+     include/VK_UniformBuffer.h
+     source/stb_image.cpp
      source/VK_ContextImpl.h
      source/VK_ShaderSetImpl.h
      source/VK_VertexBuffer.h
@@ -33,7 +35,13 @@ add_library(
      source/VK_ShaderSetImpl.cpp
      source/VK_Vertex.cpp
      source/VK_VertexBuffer.cpp
+     source/VK_UniformBufferImpl.h
      source/VK_UniformBufferImpl.cpp
+     source/VK_Viewports.cpp
+     source/VK_DescriptorSetLayoutBindingGroup.cpp
+     source/VK_VkDescriptorPoolSizeGroup.cpp
+     source/VK_ImageImpl.cpp
+     source/VK_TextureImpl.cpp
      source/VK_Util.cpp
 )
 

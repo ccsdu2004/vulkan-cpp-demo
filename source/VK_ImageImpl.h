@@ -12,6 +12,8 @@ public:
     ~VK_ImageImpl();
 public:
     bool load(const std::string& filename);
+
+    VkImage getImage()const override;
     int getWidth()const override;
     int getHeight()const override;
 

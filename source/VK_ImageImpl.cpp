@@ -47,6 +47,11 @@ bool VK_ImageImpl::load(const std::string &filename)
     return true;
 }
 
+VkImage VK_ImageImpl::getImage() const
+{
+    return textureImage;
+}
+
 int VK_ImageImpl::getWidth() const
 {
     return createInfo.extent.width;

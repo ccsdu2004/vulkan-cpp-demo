@@ -1,6 +1,7 @@
 #include <iostream>
 #include <stb_image.h>
 #include "VK_ImageImpl.h"
+#include "VK_ContextImpl.h"
 
 VK_ImageImpl::VK_ImageImpl(VkDevice vkDevice, VK_ContextImpl *vkContext):
     device(vkDevice),
@@ -35,7 +36,7 @@ bool VK_ImageImpl::load(const std::string &filename)
 
     stbi_image_free(pixels);
 
-    createImage(width, height, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, textureImage, textureImageMemory);
+    createImage(width, height, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
     context->transitionImageLayout(textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
     context->copyBufferToImage(stagingBuffer, textureImage, static_cast<uint32_t>(width), static_cast<uint32_t>(height));
@@ -74,7 +75,7 @@ void VK_ImageImpl::release()
     delete this;
 }
 
-bool VK_ImageImpl::createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage &image, VkDeviceMemory &imageMemory)
+bool VK_ImageImpl::createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties)
 {
     createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
     createInfo.imageType = VK_IMAGE_TYPE_2D;
@@ -91,25 +92,25 @@ bool VK_ImageImpl::createImage(uint32_t width, uint32_t height, VkFormat format,
     createInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
     createInfo.pNext = nullptr;
 
-    if (vkCreateImage(device, &createInfo, nullptr, &image) != VK_SUCCESS) {
+    if (vkCreateImage(device, &createInfo, nullptr, &textureImage) != VK_SUCCESS) {
         std::cerr << "failed to create image!" << std::endl;
         return true;
     }
 
     VkMemoryRequirements memRequirements;
-    vkGetImageMemoryRequirements(device, image, &memRequirements);
+    vkGetImageMemoryRequirements(device, textureImage, &memRequirements);
 
     VkMemoryAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
     allocInfo.allocationSize = memRequirements.size;
     allocInfo.memoryTypeIndex = context->findMemoryType(memRequirements.memoryTypeBits, properties);
 
-    if (vkAllocateMemory(device, &allocInfo, nullptr, &imageMemory) != VK_SUCCESS) {
+    if (vkAllocateMemory(device, &allocInfo, nullptr, &textureImageMemory) != VK_SUCCESS) {
         std::cerr << "failed to allocate image memory!" << std::endl;
         return false;
     }
 
-    vkBindImageMemory(device, image, imageMemory, 0);
+    vkBindImageMemory(device, textureImage, textureImageMemory, 0);
     return true;
 }
 

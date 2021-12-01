@@ -11,6 +11,8 @@
 #include <iostream>
 #include "VK_Context.h"
 #include "VK_UniformBuffer.h"
+#include "VK_ImageImpl.h"
+#include "VK_ImageViewImpl.h"
 
 struct QueueFamilyIndices {
     std::optional<uint32_t> graphicsFamily;
@@ -220,6 +222,9 @@ private:
 
     VkCommandPool commandPool = 0;
     std::vector<VkCommandBuffer> commandBuffers;
+
+    VK_ImageImpl* vkDepthImage = nullptr;
+    VK_ImageViewImpl* vkDepthImageView = nullptr;
 
     VkDescriptorPool descriptorPool = 0;
     std::vector<VkDescriptorSet> descriptorSets;

@@ -3,7 +3,8 @@
 #include <string>
 #include <vulkan/vulkan.h>
 #include "VK_Image.h"
-#include "VK_ContextImpl.h"
+
+class VK_ContextImpl;
 
 class VK_ImageImpl : public VK_Image
 {
@@ -12,14 +13,13 @@ public:
     ~VK_ImageImpl();
 public:
     bool load(const std::string& filename);
+    bool createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties);
 
     VkImage getImage()const override;
     int getWidth()const override;
     int getHeight()const override;
 
     void release()override;
-private:
-    bool createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory);
 private:
     VkDevice device = nullptr;
     VK_ContextImpl* context = nullptr;

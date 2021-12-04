@@ -1,10 +1,8 @@
 #ifndef VK_CONEXT_H
 #define VK_CONEXT_H
+#include <functional>
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
-#include <functional>
-#include "VK_DescriptorSetLayoutBindingGroup.h"
-#include "VK_DescriptorPoolSizeGroup.h"
 #include "VK_ShaderSet.h"
 #include "VK_Viewports.h"
 #include "VK_Texture.h"
@@ -29,8 +27,8 @@ public:
         std::string pipelineCacheFile = "pipelineCache";
     };
     virtual bool initVulkanDevice(const VK_Config& config) = 0;
-    virtual bool initVulkanContext() = 0;
-    virtual bool initPipeline(VK_ShaderSet* shaderSet) = 0;
+    virtual bool initVulkanContext(VK_ShaderSet* shaderSet) = 0;
+    virtual bool initPipeline() = 0;
     virtual bool createCommandBuffers() = 0;
     virtual bool run() = 0;
 public:
@@ -42,14 +40,14 @@ public:
     virtual void setClearColor(float r, float f, float b, float a) = 0;
     virtual void setClearDepthStencil(float depth, uint32_t stencil) = 0;
 
-    virtual void setDescriptorSetLayoutBindingGroup(const VK_DescriptorSetLayoutBindingGroup& group) = 0;
-    virtual VK_DescriptorSetLayoutBindingGroup getDescriptorSetLayoutBindingGroup()const = 0;
-
-    virtual void setDescriptorPoolSizeGroup(const VK_VkDescriptorPoolSizeGroup& group) = 0;
-    virtual VK_VkDescriptorPoolSizeGroup getDescriptorPoolSizeGroup()const = 0;
-
     virtual VkPipelineColorBlendAttachmentState getColorBlendAttachmentState() = 0;
     virtual void setColorBlendAttachmentState(const VkPipelineColorBlendAttachmentState& state) = 0;
+
+    virtual VkPipelineRasterizationStateCreateInfo getPipelineRasterizationStateCreateInfo() = 0;
+    virtual void setPipelineRasterizationStateCreateInfo(const VkPipelineRasterizationStateCreateInfo& createInfo) = 0;
+
+    virtual VkPipelineDepthStencilStateCreateInfo getPipelineDepthStencilStateCreateInfo() = 0;
+    virtual void setPipelineDepthStencilStateCreateInfo(const VkPipelineDepthStencilStateCreateInfo& createInfo) = 0;
 
     virtual void setDynamicState(VkDynamicState dynamicState) = 0;
 public:

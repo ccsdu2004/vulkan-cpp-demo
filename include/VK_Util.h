@@ -1,6 +1,7 @@
 #ifndef VK_UTIL_H
 #define VK_UTIL_H
 #include <string>
+#include <cstring>
 #include <vector>
 #include <vulkan/vulkan.h>
 
@@ -12,13 +13,6 @@ inline bool isSame(const std::vector<T>& a, const std::vector<T>& b)
 
     int size = sizeof(T) * a.size();
     return !memcmp((char*)a.data(), (char*)b.data(), size);
-}
-
-template<class T>
-inline void releaseContainer(T begin, T end)
-{
-    for(; begin != end; begin++)
-        (*begin)->release();
 }
 
 std::vector<char> readDataFromFile(const std::string &filename);

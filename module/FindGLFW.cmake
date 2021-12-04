@@ -21,7 +21,7 @@ find_path (GLFW_INCLUDE_DIR
 )
 
 if (WIN32)
-    if (MSVC11 OR (${MSVC_VERSION} EQUAL 1700))
+    if (MSVC11)
         find_library (GLFW_LIBRARIES
             NAMES
                 glfw3
@@ -31,7 +31,7 @@ if (WIN32)
             DOCS
                 "The GLFW library"
         )
-    elseif (MSVC12 OR (${MSVC_VERSION} EQUAL 1800))
+    elseif (MSVC12)
         find_library (GLFW_LIBRARIES
             NAMES
                 glfw3
@@ -41,7 +41,7 @@ if (WIN32)
             DOCS
                 "The GLFW library"
         )
-    elseif (MSVC14 OR (${MSVC_VERSION} EQUAL 1900))
+    elseif (MSVC14)
         find_library (GLFW_LIBRARIES
             NAMES
                 glfw3
@@ -51,7 +51,7 @@ if (WIN32)
             DOCS
                 "The GLFW library"
         )
-    elseif (MSVC17 OR (${MSVC_VERSION} EQUAL 2100))
+    elseif (MSVC17)
         find_library (GLFW_LIBRARIES
             NAMES
                 glfw3

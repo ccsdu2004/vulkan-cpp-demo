@@ -18,6 +18,14 @@ public:
     size_t getAttributeDescriptionCount()const override;
     const VkVertexInputAttributeDescription* getAttributeDescriptionData()const override;
 
+    void addDescriptorSetLayoutBinding(const VkDescriptorSetLayoutBinding& binding)override;
+    size_t getDescriptorSetLayoutBindingCount()const override;
+    const VkDescriptorSetLayoutBinding* getDescriptorSetLayoutBindingData()const override;
+
+    size_t getDescriptorPoolSizeCount()const override;
+    const VkDescriptorPoolSize *getDescriptorPoolSizeData()const override;
+    void updateDescriptorPoolSize(int32_t size)override;
+
     bool addShader(const std::string &spvFile, VkShaderStageFlagBits type,
                    const char* entryPoint = "main")override;
     bool isValid()override;
@@ -31,6 +39,9 @@ private:
     VkVertexInputBindingDescription bindingDescription{};
     std::vector<VkVertexInputAttributeDescription> vertexInputAttributeDescriptions;
     std::vector<VkPipelineShaderStageCreateInfo> shaderStageCreateInfos;
+
+    std::vector<VkDescriptorSetLayoutBinding> descriptorSetLayoutBindings;
+    std::vector<VkDescriptorPoolSize> descriptorPoolSizes;
 };
 
 #endif // VK_SHADERSETIMPL_H

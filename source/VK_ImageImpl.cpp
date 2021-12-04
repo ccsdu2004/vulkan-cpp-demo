@@ -1,3 +1,4 @@
+#include <cstring>
 #include <iostream>
 #include <stb_image.h>
 #include "VK_ImageImpl.h"

@@ -13,6 +13,7 @@
 #include "VK_UniformBuffer.h"
 #include "VK_ImageImpl.h"
 #include "VK_ImageViewImpl.h"
+#include "VK_ValidationLayer.h"
 
 struct QueueFamilyIndices {
     std::optional<uint32_t> graphicsFamily;
@@ -44,14 +45,10 @@ void cleanVulkanObjectContainer(C& container)
 
 class VK_ContextImpl : public VK_Context
 {
-    const std::vector<const char*> validationLayers = {
-        "VK_LAYER_KHRONOS_validation"
-    };
-
     const std::vector<const char*> deviceExtensions = {
         VK_KHR_SWAPCHAIN_EXTENSION_NAME
     };
-    static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData);
+
     static void framebufferResizeCallback(GLFWwindow* window, int width, int height);
     static void mouseButtonCallback(GLFWwindow* window, int button, int state, int mods);
 public:
@@ -64,9 +61,9 @@ public:
     void setOnFrameSizeChanged(std::function<void(int, int)> cb) override;
 
     bool initVulkanDevice(const VK_Config& config)override;
-    bool initVulkanContext()override;
+    bool initVulkanContext(VK_ShaderSet* shaderSet)override;
 
-    bool initPipeline(VK_ShaderSet* shaderSet)override;
+    bool initPipeline()override;
     bool createCommandBuffers()override;
     bool run()override;
 public:
@@ -78,14 +75,14 @@ public:
     void setClearColor(float r, float g, float b, float a)override;
     void setClearDepthStencil(float depth, uint32_t stencil)override;
 
-    void setDescriptorSetLayoutBindingGroup(const VK_DescriptorSetLayoutBindingGroup& group)override;
-    VK_DescriptorSetLayoutBindingGroup getDescriptorSetLayoutBindingGroup()const override;
-
-    void setDescriptorPoolSizeGroup(const VK_VkDescriptorPoolSizeGroup& group)override;
-    VK_VkDescriptorPoolSizeGroup getDescriptorPoolSizeGroup()const override;
-
     VkPipelineColorBlendAttachmentState getColorBlendAttachmentState()override;
     void setColorBlendAttachmentState(const VkPipelineColorBlendAttachmentState& state)override;
+
+    VkPipelineRasterizationStateCreateInfo getPipelineRasterizationStateCreateInfo()override;
+    void setPipelineRasterizationStateCreateInfo(const VkPipelineRasterizationStateCreateInfo& createInfo)override;
+
+    VkPipelineDepthStencilStateCreateInfo getPipelineDepthStencilStateCreateInfo()override;
+    void setPipelineDepthStencilStateCreateInfo(const VkPipelineDepthStencilStateCreateInfo& createInfo)override;
 public:
     void setDynamicState(VkDynamicState dynamicState)override;
     VkPipelineDynamicStateCreateInfo createDynamicStateCreateInfo(
@@ -125,8 +122,6 @@ private:
     void cleanup();
 
     bool createInstance();
-    void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo);
-    bool setupDebugMessenger();
     bool createSurface();
     bool pickPhysicalDevice();
     bool createLogicalDevice();
@@ -173,13 +168,14 @@ private:
     bool checkDeviceExtensionSupport(VkPhysicalDevice device);
     QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
     std::vector<const char*> getRequiredExtensions();
-    bool checkValidationLayerSupport();
 
     VkCommandBuffer beginSingleTimeCommands();
     void endSingleTimeCommands(VkCommandBuffer commandBuffer);
 private:
     void initClearColorAndDepthStencil();
     void initColorBlendAttachmentState();
+    void initRasterCreateInfo();
+    void initDepthStencilStateCreateInfo();
     void initViewport();
 private:
     VK_ContextConfig appConfig;
@@ -189,7 +185,8 @@ private:
     std::function<void(int, int)> windowSizeChangedCallback;
 
     VkInstance instance;
-    VkDebugUtilsMessengerEXT debugMessenger;
+    VK_ValidationLayer* vkValidationLayer = nullptr;
+
     VkSurfaceKHR surface;
 
     VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
@@ -209,10 +206,7 @@ private:
     std::vector<VkFramebuffer> swapChainFramebuffers;
 
     VkRenderPass renderPass;
-    VK_DescriptorSetLayoutBindingGroup vkDescriptorSetLayoutBindingGroup;
     VkDescriptorSetLayout descriptorSetLayout = 0;
-
-    VK_VkDescriptorPoolSizeGroup vkDescriptorPoolSizeGroup;
 
     std::vector<VkDynamicState> vkDynamicStates;
 
@@ -247,7 +241,8 @@ private:
 
     VkClearValue vkClearValue;
     VkPipelineColorBlendAttachmentState vkColorBlendAttachment{};
-
+    VkPipelineRasterizationStateCreateInfo vkPipelineRasterizationStateCreateInfo{};
+    VkPipelineDepthStencilStateCreateInfo vkPipelineDepthStencilStateCreateInfo{};
     std::list<VK_Image*> vkImageList;
     std::list<VK_Sampler*> vkSamplerList;
     std::list<VK_ImageView*> vkImageViewList;

@@ -7,10 +7,6 @@
 VK_ShaderSetImpl::VK_ShaderSetImpl(VkDevice device):
     vkDevice(device)
 {
-    appendAttributeDescription(0, 3 * sizeof(float));
-    appendAttributeDescription(1, 4 * sizeof(float));
-    appendAttributeDescription(2, 3 * sizeof(float));
-    appendAttributeDescription(3, 2 * sizeof(float));
 }
 
 VK_ShaderSetImpl::~VK_ShaderSetImpl()
@@ -79,6 +75,44 @@ const VkVertexInputAttributeDescription* VK_ShaderSetImpl::getAttributeDescripti
     return vertexInputAttributeDescriptions.data();
 }
 
+void VK_ShaderSetImpl::addDescriptorSetLayoutBinding(const VkDescriptorSetLayoutBinding &binding)
+{
+    descriptorSetLayoutBindings.push_back(binding);
+    VkDescriptorPoolSize poolSize;
+    poolSize.descriptorCount = 0;
+    poolSize.type = binding.descriptorType;
+    descriptorPoolSizes.push_back(poolSize);
+}
+
+size_t VK_ShaderSetImpl::getDescriptorSetLayoutBindingCount() const
+{
+    return descriptorSetLayoutBindings.size();
+}
+
+const VkDescriptorSetLayoutBinding *VK_ShaderSetImpl::getDescriptorSetLayoutBindingData() const
+{
+    return descriptorSetLayoutBindings.data();
+}
+
+size_t VK_ShaderSetImpl::getDescriptorPoolSizeCount() const
+{
+    return descriptorPoolSizes.size();
+}
+
+const VkDescriptorPoolSize *VK_ShaderSetImpl::getDescriptorPoolSizeData() const
+{
+    return descriptorPoolSizes.data();
+}
+
+void VK_ShaderSetImpl::updateDescriptorPoolSize(int32_t size)
+{
+    auto itr = descriptorPoolSizes.begin();
+    while(itr != descriptorPoolSizes.end()) {
+        (*itr).descriptorCount = size;
+        itr ++;
+    }
+}
+
 bool VK_ShaderSetImpl::addShader(const std::string &spvFile, VkShaderStageFlagBits type, const char* entryPoint)
 {
     auto module = createShaderModule(spvFile);
@@ -104,6 +138,7 @@ bool VK_ShaderSetImpl::addShader(const std::string &spvFile, VkShaderStageFlagBi
 
 bool VK_ShaderSetImpl::isValid()
 {
+    //待完善
     bool hasV = false;
     bool hasFs = false;
     auto itr = shaderStageCreateInfos.begin();

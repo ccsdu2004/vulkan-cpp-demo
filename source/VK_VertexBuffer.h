@@ -1,5 +1,6 @@
 #ifndef VK_VERTEXBUFFER_H
 #define VK_VERTEXBUFFER_H
+#include <cstring>
 #include <iostream>
 #include "VK_Context.h"
 #include "VK_Buffer.h"

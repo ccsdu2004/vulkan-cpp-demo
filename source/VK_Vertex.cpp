@@ -1,5 +1,4 @@
 #include "VK_Vertex.h"
-#include <iostream>
 
 VkVertexInputBindingDescription VK_Vertex::getBindingDescription()
 {

@@ -1,8 +1,8 @@
 #ifndef VK_BUFFER_H
 #define VK_BUFFER_H
+#include <vector>
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
-#include <vector>
 #include "VK_Deleter.h"
 #include "VK_Vertex.h"
 

@@ -1,9 +1,9 @@
 #include <iostream>
+#include <cstring>
 #include <chrono>
 #include <glm/mat4x4.hpp>
 #include <glm/gtx/transform.hpp>
 #include "VK_UniformBuffer.h"
-#include "VK_DescriptorSetLayoutBindingGroup.h"
 #include "VK_Context.h"
 
 using namespace std;
@@ -48,7 +48,7 @@ void onFrameSizeChanged(int width, int height)
 int main()
 {
     VK_ContextConfig config;
-    config.debug = true;
+    config.debug = false;
     config.name = "Uniform Demo";
 
     context = createVkContext(config);
@@ -59,11 +59,17 @@ int main()
     context->initVulkanDevice(vkConfig);
 
     auto shaderSet = context->createShaderSet();
-    shaderSet->addShader("shader/uniform/vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-    shaderSet->addShader("shader/uniform/frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+    shaderSet->addShader("../shader/uniform/vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+    shaderSet->addShader("../shader/uniform/frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 
     shaderSet->appendAttributeDescription(0, sizeof (float) * 3);
     shaderSet->appendAttributeDescription(1, sizeof (float) * 4);
+
+    VkDescriptorSetLayoutBinding uniformBinding = VK_ShaderSet::createDescriptorSetLayoutBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT);
+    shaderSet->addDescriptorSetLayoutBinding(uniformBinding);
+
+    uniformBinding = VK_ShaderSet::createDescriptorSetLayoutBinding(1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT);
+    shaderSet->addDescriptorSetLayoutBinding(uniformBinding);
 
     if(!shaderSet->isValid()) {
         std::cerr << "invalid shaderSet" << std::endl;
@@ -72,35 +78,19 @@ int main()
         return -1;
     }
 
-    {
-        VK_DescriptorSetLayoutBindingGroup bindingGroup;
-        VkDescriptorSetLayoutBinding uniformBinding = VK_DescriptorSetLayoutBindingGroup::createDescriptorSetLayoutBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT);
-        bindingGroup.addDescriptorSetLayoutBinding(uniformBinding);
-        uniformBinding = VK_DescriptorSetLayoutBindingGroup::createDescriptorSetLayoutBinding(1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FLAG_BITS_MAX_ENUM);
-        bindingGroup.addDescriptorSetLayoutBinding(uniformBinding);
-        context->setDescriptorSetLayoutBindingGroup(bindingGroup);
-    }
-
-    {
-        auto desciptorPoolSizeGroup = context->getDescriptorPoolSizeGroup();
-        desciptorPoolSizeGroup.addDescriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
-        desciptorPoolSizeGroup.addDescriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
-        context->setDescriptorPoolSizeGroup(desciptorPoolSizeGroup);
-    }
-
     auto buffer = context->createVertexBuffer(vertices, 3 + 4, indices);
     context->addBuffer(buffer);
 
-    auto ubo = context->createUniformBuffer(0, sizeof(GLfloat) * 16);
+    auto ubo = context->createUniformBuffer(0, sizeof(float) * 16);
     ubo->setWriteDataCallback(updateUniformBufferData);
     context->addUniformBuffer(ubo);
 
-    ubo = context->createUniformBuffer(1, sizeof(GLfloat) * 4);
+    ubo = context->createUniformBuffer(1, sizeof(float) * 4);
     ubo->setWriteDataCallback(updateUniformColor);
     context->addUniformBuffer(ubo);
 
-    context->initVulkanContext();
-    context->initPipeline(shaderSet);
+    context->initVulkanContext(shaderSet);
+    context->initPipeline();
     context->createCommandBuffers();
 
     context->run();

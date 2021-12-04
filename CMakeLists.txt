@@ -1,6 +1,11 @@
 cmake_minimum_required(VERSION 3.5)
 
-project(vulkan-demo LANGUAGES CXX)
+project(vulkan-demo)
+
+set(GLFW_ROOT "D:\\glfw-3.3.5.bin.WIN64")
+include_directories("C:\\VulkanSDK\\1.2.189.2\\Include")
+LINK_DIRECTORIES("C:\\VulkanSDK\\1.2.189.2\\Lib")
+LINK_DIRECTORIES("D:\\glfw-3.3.5.bin.WIN64\\lib-mingw-w64")
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -19,12 +24,14 @@ find_package(GLFW REQUIRED)
 
 INCLUDE_DIRECTORIES(include)
 INCLUDE_DIRECTORIES(source)
+INCLUDE_DIRECTORIES(./)
 
 add_library(
      vulkan-framwork
      include/VK_Buffer.h
      include/VK_Vertex.h
      include/VK_Context.h
+     include/VK_ShaderSet.h
      include/VK_UniformBuffer.h
      source/stb_image.cpp
      source/VK_ContextImpl.h
@@ -38,19 +45,24 @@ add_library(
      source/VK_UniformBufferImpl.h
      source/VK_UniformBufferImpl.cpp
      source/VK_Viewports.cpp
-     source/VK_DescriptorSetLayoutBindingGroup.cpp
-     source/VK_VkDescriptorPoolSizeGroup.cpp
      source/VK_ImageImpl.cpp
-     source/VK_TextureImpl.cpp
+     source/VK_SamplerImpl.cpp
+     source/VK_ImageView.cpp
+     source/VK_ImageViewImpl.cpp
+     source/VK_ValidationLayer.cpp
+     source/VK_ShaderSet.cpp
      source/VK_Util.cpp
 )
 
-set(DEMOS blend-color hello-triangle clear-color indexed-traingle uniform-buffer)
+set(DEMOS blend-color hello-triangle clear-color indexed-traingle uniform-buffer uniform-buffer2 viewport-buffer depth-buffer sampler texture)
 
 foreach(var IN LISTS DEMOS)
     message("build ${var}")
     add_executable(${var} demo/main-${var}.cpp)
-    target_link_libraries(${var} vulkan-framwork glfw vulkan)
+    target_link_libraries(${var} vulkan-framwork glfw3 vulkan-1)
 endforeach()
+
+#add_executable(opengl demo/opengl.cpp glad/glad.c)
+#target_link_libraries(opengl glfw3 GL dl)
 
 message("finished ......................")

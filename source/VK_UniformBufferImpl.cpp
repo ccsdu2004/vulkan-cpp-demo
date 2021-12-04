@@ -1,4 +1,5 @@
 #include "VK_UniformBufferImpl.h"
+#include <cstring>
 #include <chrono>
 #include <glm/mat4x4.hpp>
 #include <glm/gtx/transform.hpp>

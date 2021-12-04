@@ -1,5 +1,6 @@
 #include <iostream>
 #include <fstream>
+#include <cstring>
 #include <set>
 #include "VK_ContextImpl.h"
 #include "VK_ShaderSetImpl.h"
@@ -14,31 +15,6 @@
 VK_Context* createVkContext(const VK_ContextConfig& config)
 {
     return new VK_ContextImpl(config);
-}
-
-VkResult createDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger)
-{
-    auto func = (PFN_vkCreateDebugUtilsMessengerEXT) vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
-    if (func != nullptr) {
-        return func(instance, pCreateInfo, pAllocator, pDebugMessenger);
-    } else {
-        return VK_ERROR_EXTENSION_NOT_PRESENT;
-    }
-}
-
-void destroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks* pAllocator)
-{
-    auto func = (PFN_vkDestroyDebugUtilsMessengerEXT) vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
-    if (func != nullptr) {
-        func(instance, debugMessenger, pAllocator);
-    }
-}
-
-VkBool32 VK_ContextImpl::debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData, void *pUserData)
-{
-    if(messageSeverity == VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
-        std::cerr << "validation layer: " << pCallbackData->pMessage << std::endl;
-    return VK_FALSE;
 }
 
 VK_ContextImpl::VK_ContextImpl(const VK_ContextConfig& config):
@@ -88,8 +64,9 @@ bool VK_ContextImpl::initVulkanDevice(const VK_Config& config)
 {
     vkConfig = config;
 
+    vkValidationLayer = new VK_ValidationLayer(appConfig.debug);
+
     return createInstance() &&
-           setupDebugMessenger() &&
            createSurface() &&
            pickPhysicalDevice() &&
            createLogicalDevice() && createCommandPool() &&
@@ -97,11 +74,17 @@ bool VK_ContextImpl::initVulkanDevice(const VK_Config& config)
            createSwapChainImageViews();
 }
 
-bool VK_ContextImpl::initVulkanContext()
+bool VK_ContextImpl::initVulkanContext(VK_ShaderSet* shaderSet)
 {
+    if(!shaderSet) {
+        std::cerr << "invalid input shaderSet" << std::endl;
+        return false;
+    }
+    vkShaderSet = shaderSet;
     createGraphicsPiplelineCache();
 
     createRenderPass();
+
     createDescriptorSetLayout();
 
     createDepthResources();
@@ -114,31 +97,27 @@ bool VK_ContextImpl::initVulkanContext()
 
     initClearColorAndDepthStencil();
     initColorBlendAttachmentState();
+    initRasterCreateInfo();
+    initDepthStencilStateCreateInfo();
     initViewport();
     return true;
 }
 
-bool VK_ContextImpl::initPipeline(VK_ShaderSet *shaderSet)
+bool VK_ContextImpl::initPipeline()
 {
-    if(!shaderSet) {
-        std::cerr << "invalid input shaderSet" << std::endl;
-        return false;
-    }
-    vkShaderSet = shaderSet;
-
     createGraphicsPipeline();
     return true;
 }
 
 bool VK_ContextImpl::run()
 {
-    //static double time = glfwGetTime();
+    static double time = glfwGetTime();
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();
 
         drawFrame();
-        //std::cout << "fps:" << 1 / (glfwGetTime() - time) << std::endl;
-        //time = glfwGetTime();
+        std::cout << "fps:" << 1 / (glfwGetTime() - time) << std::endl;
+        time = glfwGetTime();
     }
 
     vkDeviceWaitIdle(device);
@@ -182,26 +161,6 @@ void VK_ContextImpl::setClearDepthStencil(float depth, uint32_t stencil)
     vkNeedUpdateSwapChain = true;
 }
 
-void VK_ContextImpl::setDescriptorSetLayoutBindingGroup(const VK_DescriptorSetLayoutBindingGroup &group)
-{
-    vkDescriptorSetLayoutBindingGroup = group;
-}
-
-VK_DescriptorSetLayoutBindingGroup VK_ContextImpl::getDescriptorSetLayoutBindingGroup()const
-{
-    return vkDescriptorSetLayoutBindingGroup;
-}
-
-void VK_ContextImpl::setDescriptorPoolSizeGroup(const VK_VkDescriptorPoolSizeGroup &group)
-{
-    vkDescriptorPoolSizeGroup = group;
-}
-
-VK_VkDescriptorPoolSizeGroup VK_ContextImpl::getDescriptorPoolSizeGroup() const
-{
-    return vkDescriptorPoolSizeGroup;
-}
-
 VkPipelineColorBlendAttachmentState VK_ContextImpl::getColorBlendAttachmentState()
 {
     return vkColorBlendAttachment;
@@ -213,7 +172,30 @@ void VK_ContextImpl::setColorBlendAttachmentState(const VkPipelineColorBlendAtta
     if(memcmp(&vkColorBlendAttachment, &state, size)) {
         vkColorBlendAttachment = state;
         vkNeedUpdateSwapChain = true;
+        std::cout << 1111 << std::endl;
     }
+}
+
+VkPipelineRasterizationStateCreateInfo VK_ContextImpl::getPipelineRasterizationStateCreateInfo()
+{
+    return vkPipelineRasterizationStateCreateInfo;
+}
+
+void VK_ContextImpl::setPipelineRasterizationStateCreateInfo(const VkPipelineRasterizationStateCreateInfo &createInfo)
+{
+    vkPipelineRasterizationStateCreateInfo = createInfo;
+    vkNeedUpdateSwapChain = true;
+}
+
+VkPipelineDepthStencilStateCreateInfo VK_ContextImpl::getPipelineDepthStencilStateCreateInfo()
+{
+    return vkPipelineDepthStencilStateCreateInfo;
+}
+
+void VK_ContextImpl::setPipelineDepthStencilStateCreateInfo(const VkPipelineDepthStencilStateCreateInfo &createInfo)
+{
+    vkPipelineDepthStencilStateCreateInfo = createInfo;
+    vkNeedUpdateSwapChain = true;
 }
 
 void VK_ContextImpl::setDynamicState(VkDynamicState dynamicState)
@@ -278,7 +260,13 @@ void VK_ContextImpl::cleanup()
     if(vkShaderSet)
         vkShaderSet->release();
 
-    releaseContainer(vkBuffers.begin(), vkBuffers.end());
+    while(true) {
+        auto itr = vkBuffers.begin();
+        if(itr == vkBuffers.end())
+            break;
+        (*itr)->release();
+    }
+
     vkBuffers.clear();
 
     saveGraphicsPiplineCache();
@@ -305,9 +293,8 @@ void VK_ContextImpl::cleanup()
 
     vkDestroyDevice(device, nullptr);
 
-    if (appConfig.debug) {
-        destroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
-    }
+    vkValidationLayer->cleanup(instance);
+    vkValidationLayer->release();
 
     vkDestroySurfaceKHR(instance, surface, nullptr);
     vkDestroyInstance(instance, nullptr);
@@ -353,7 +340,7 @@ void VK_ContextImpl::recreateSwapChain()
 
 bool VK_ContextImpl::createInstance()
 {
-    if (appConfig.debug && !checkValidationLayerSupport()) {
+    if (!vkValidationLayer->appendValidationLayerSupport()) {
         std::cerr << "validation layers requested, but not available!" << std::endl;
         return false;
     }
@@ -375,46 +362,14 @@ bool VK_ContextImpl::createInstance()
     createInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
     createInfo.ppEnabledExtensionNames = extensions.data();
 
-    VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo{};
-    if (appConfig.debug) {
-        createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
-        createInfo.ppEnabledLayerNames = validationLayers.data();
-
-        populateDebugMessengerCreateInfo(debugCreateInfo);
-        createInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT*) &debugCreateInfo;
-    } else {
-        createInfo.enabledLayerCount = 0;
-        createInfo.pNext = nullptr;
-    }
+    vkValidationLayer->adjustVkInstanceCreateInfo(createInfo);
 
     if (vkCreateInstance(&createInfo, nullptr, &instance) != VK_SUCCESS) {
         std::cerr << "failed to create instance!" << std::endl;
         return false;
     }
-    return true;
-}
 
-void VK_ContextImpl::populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT &createInfo)
-{
-    createInfo = {};
-    createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
-    createInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
-    createInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
-    createInfo.pfnUserCallback = debugCallback;
-}
-
-bool VK_ContextImpl::setupDebugMessenger()
-{
-    if (!appConfig.debug)
-        return true;
-
-    VkDebugUtilsMessengerCreateInfoEXT createInfo;
-    populateDebugMessengerCreateInfo(createInfo);
-
-    if (createDebugUtilsMessengerEXT(instance, &createInfo, nullptr, &debugMessenger) != VK_SUCCESS) {
-        std::cout << "failed to set up debug messenger!" << std::endl;
-        return false;
-    }
+    vkValidationLayer->setupDebugMessenger(instance);
     return true;
 }
 
@@ -499,12 +454,7 @@ bool VK_ContextImpl::createLogicalDevice()
     createInfo.enabledExtensionCount = static_cast<uint32_t>(deviceExtensions.size());
     createInfo.ppEnabledExtensionNames = deviceExtensions.data();
 
-    if (appConfig.debug) {
-        createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
-        createInfo.ppEnabledLayerNames = validationLayers.data();
-    } else {
-        createInfo.enabledLayerCount = 0;
-    }
+    vkValidationLayer->adjustVkDeviceCreateInfo(createInfo);
 
     if (vkCreateDevice(physicalDevice, &createInfo, nullptr, &device) != VK_SUCCESS) {
         std::cerr << "failed to create logical device!" << std::endl;
@@ -576,8 +526,8 @@ bool VK_ContextImpl::createSwapChainImageViews()
 
     for (size_t i = 0; i < swapChainImages.size(); i++) {
         VkImageViewCreateInfo viewCreateInfo = VK_ImageView::createImageViewCreateInfo(swapChainImages[i], swapChainImageFormat);
-        VkSamplerCreateInfo samplerCreateInfo = VK_Sampler::createSamplerCreateInfo();
-        samplerCreateInfo.anisotropyEnable = VK_FALSE;
+        //VkSamplerCreateInfo samplerCreateInfo = VK_Sampler::createSamplerCreateInfo();
+        //samplerCreateInfo.anisotropyEnable = VK_FALSE;
 
         viewCreateInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 
@@ -656,14 +606,15 @@ bool VK_ContextImpl::createDescriptorSetLayout()
 {
     VkDescriptorSetLayoutCreateInfo layoutInfo{};
     layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-    layoutInfo.bindingCount = vkDescriptorSetLayoutBindingGroup.getCount();
-    layoutInfo.pBindings = vkDescriptorSetLayoutBindingGroup.getData();
+    layoutInfo.bindingCount = vkShaderSet->getDescriptorSetLayoutBindingCount();
+    layoutInfo.pBindings = vkShaderSet->getDescriptorSetLayoutBindingData();
     layoutInfo.pNext = nullptr;
 
     if (vkCreateDescriptorSetLayout(device, &layoutInfo, nullptr, &descriptorSetLayout) != VK_SUCCESS) {
         std::cerr << "failed to create descriptor set layout!" << std::endl;
         return false;
     }
+
     return true;
 }
 
@@ -951,30 +902,10 @@ bool VK_ContextImpl::createGraphicsPipeline()
     viewportState.scissorCount = vkViewports.getViewportCount();
     viewportState.pScissors = vkViewports.getScissorData();
 
-    VkPipelineRasterizationStateCreateInfo rasterizer{};
-    rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
-    rasterizer.depthClampEnable = VK_FALSE;
-    rasterizer.rasterizerDiscardEnable = VK_FALSE;
-    rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
-    rasterizer.lineWidth = 1.0f;
-    rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
-    rasterizer.frontFace = VK_FRONT_FACE_CLOCKWISE;
-    rasterizer.depthBiasEnable = VK_FALSE;
-
     VkPipelineMultisampleStateCreateInfo multisampling{};
     multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
     multisampling.sampleShadingEnable = VK_FALSE;
     multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
-
-    VkPipelineDepthStencilStateCreateInfo depthStencil{};
-    depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-    depthStencil.depthTestEnable = VK_TRUE;
-    depthStencil.depthWriteEnable = VK_TRUE;
-    depthStencil.depthCompareOp = VK_COMPARE_OP_LESS;
-    depthStencil.depthBoundsTestEnable = VK_FALSE;
-    depthStencil.stencilTestEnable = VK_FALSE;
-    depthStencil.minDepthBounds = 0.0f;
-    depthStencil.maxDepthBounds = 1.0f;
 
     VkPipelineColorBlendStateCreateInfo colorBlending{};
     colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
@@ -1004,10 +935,11 @@ bool VK_ContextImpl::createGraphicsPipeline()
     pipelineInfo.pVertexInputState = &vertexInputInfo;
     pipelineInfo.pInputAssemblyState = &inputAssembly;
     pipelineInfo.pViewportState = &viewportState;
-    pipelineInfo.pRasterizationState = &rasterizer;
-    pipelineInfo.pDepthStencilState = &depthStencil;
+    pipelineInfo.pRasterizationState = &vkPipelineRasterizationStateCreateInfo;
+    pipelineInfo.pDepthStencilState = &vkPipelineDepthStencilStateCreateInfo;
     pipelineInfo.pMultisampleState = &multisampling;
     pipelineInfo.pColorBlendState = &colorBlending;
+
     auto dynamicState = createDynamicStateCreateInfo();
     pipelineInfo.pDynamicState = &dynamicState;
     pipelineInfo.layout = pipelineLayout;
@@ -1113,14 +1045,22 @@ bool VK_ContextImpl::hasStencilComponent(VkFormat format)
 
 void VK_ContextImpl::createDescriptorPool()
 {
-    vkDescriptorPoolSizeGroup.update(swapChainImageViews.size());
+    vkShaderSet->updateDescriptorPoolSize(swapChainImageViews.size());
+
+    VkDescriptorPoolSize poolSize{};
+    poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    poolSize.descriptorCount = static_cast<uint32_t>(swapChainImages.size());
 
     VkDescriptorPoolCreateInfo poolInfo{};
     poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-    poolInfo.poolSizeCount = vkDescriptorPoolSizeGroup.getCount();
-    poolInfo.pPoolSizes = vkDescriptorPoolSizeGroup.getData();
+    if(vkShaderSet->getDescriptorPoolSizeCount() > 0) {
+        poolInfo.poolSizeCount = vkShaderSet->getDescriptorPoolSizeCount();
+        poolInfo.pPoolSizes = vkShaderSet->getDescriptorPoolSizeData();
+    } else {
+        poolInfo.poolSizeCount = 1;
+        poolInfo.pPoolSizes = &poolSize;
+    }
     poolInfo.maxSets = static_cast<uint32_t>(swapChainImages.size());
-    poolInfo.pNext = nullptr;
 
     if (vkCreateDescriptorPool(device, &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS) {
         std::cerr << "failed to create descriptor pool!" << std::endl;
@@ -1458,32 +1398,6 @@ std::vector<const char *> VK_ContextImpl::getRequiredExtensions()
     return extensions;
 }
 
-bool VK_ContextImpl::checkValidationLayerSupport()
-{
-    uint32_t layerCount;
-    vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
-
-    std::vector<VkLayerProperties> availableLayers(layerCount);
-    vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
-
-    for (const char* layerName : validationLayers) {
-        bool layerFound = false;
-
-        for (const auto& layerProperties : availableLayers) {
-            if (strcmp(layerName, layerProperties.layerName) == 0) {
-                layerFound = true;
-                break;
-            }
-        }
-
-        if (!layerFound) {
-            return false;
-        }
-    }
-
-    return true;
-}
-
 void VK_ContextImpl::initClearColorAndDepthStencil()
 {
     vkClearValue = {{{0.0f, 0.0f, 0.0f, 0.0f}}};
@@ -1493,6 +1407,30 @@ void VK_ContextImpl::initColorBlendAttachmentState()
 {
     vkColorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
     vkColorBlendAttachment.blendEnable = VK_FALSE;
+}
+
+void VK_ContextImpl::initRasterCreateInfo()
+{
+    vkPipelineRasterizationStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+    vkPipelineRasterizationStateCreateInfo.depthClampEnable = VK_FALSE;
+    vkPipelineRasterizationStateCreateInfo.rasterizerDiscardEnable = VK_FALSE;
+    vkPipelineRasterizationStateCreateInfo.polygonMode = VK_POLYGON_MODE_FILL;
+    vkPipelineRasterizationStateCreateInfo.lineWidth = 1.0f;
+    vkPipelineRasterizationStateCreateInfo.cullMode = VK_CULL_MODE_BACK_BIT;
+    vkPipelineRasterizationStateCreateInfo.frontFace = VK_FRONT_FACE_CLOCKWISE;
+    vkPipelineRasterizationStateCreateInfo.depthBiasEnable = VK_FALSE;
+}
+
+void VK_ContextImpl::initDepthStencilStateCreateInfo()
+{
+    vkPipelineDepthStencilStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+    vkPipelineDepthStencilStateCreateInfo.depthTestEnable = VK_TRUE;
+    vkPipelineDepthStencilStateCreateInfo.depthWriteEnable = VK_TRUE;
+    vkPipelineDepthStencilStateCreateInfo.depthCompareOp = VK_COMPARE_OP_LESS;
+    vkPipelineDepthStencilStateCreateInfo.depthBoundsTestEnable = VK_FALSE;
+    vkPipelineDepthStencilStateCreateInfo.stencilTestEnable = VK_FALSE;
+    vkPipelineDepthStencilStateCreateInfo.minDepthBounds = 0.0f;
+    vkPipelineDepthStencilStateCreateInfo.maxDepthBounds = 1.0f;
 }
 
 void VK_ContextImpl::initViewport()
@@ -1616,5 +1554,3 @@ void VK_ContextImpl::endSingleTimeCommands(VkCommandBuffer commandBuffer)
 
     vkFreeCommandBuffers(device, commandPool, 1, &commandBuffer);
 }
-
-

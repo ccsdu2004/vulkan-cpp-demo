@@ -1,8 +1,8 @@
 #ifndef VERTEX_H
 #define VERTEX_H
+#include <array>
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
-#include <array>
 #include <glm/vec2.hpp>
 #include <glm/vec3.hpp>
 #include <glm/vec4.hpp>

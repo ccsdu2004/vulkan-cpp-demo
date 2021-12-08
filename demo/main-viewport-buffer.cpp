@@ -67,6 +67,10 @@ int main()
     context->createWindow(640, 480, true);
     context->setOnFrameSizeChanged(onFrameSizeChanged);
 
+    VkPhysicalDeviceFeatures deviceFeatures{};
+    deviceFeatures.multiViewport = VK_TRUE;
+    context->setLogicalDeviceFeatures(deviceFeatures);
+
     VK_Context::VK_Config vkConfig;
     context->initVulkanDevice(vkConfig);
 

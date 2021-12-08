@@ -31,18 +31,6 @@ struct SwapChainSupportDetails {
     std::vector<VkPresentModeKHR> presentModes;
 };
 
-template<class C>
-void cleanVulkanObjectContainer(C& container)
-{
-    while(true) {
-        auto itr = container.begin();
-        if (itr == container.end())
-            break;
-        else
-            (*itr)->release();
-    }
-}
-
 class VK_ContextImpl : public VK_Context
 {
     const std::vector<const char*> deviceExtensions = {
@@ -75,6 +63,8 @@ public:
     void setClearColor(float r, float g, float b, float a)override;
     void setClearDepthStencil(float depth, uint32_t stencil)override;
 
+    void setLogicalDeviceFeatures(const VkPhysicalDeviceFeatures& features)override;
+
     VkPipelineColorBlendAttachmentState getColorBlendAttachmentState()override;
     void setColorBlendAttachmentState(const VkPipelineColorBlendAttachmentState& state)override;
 
@@ -83,6 +73,10 @@ public:
 
     VkPipelineDepthStencilStateCreateInfo getPipelineDepthStencilStateCreateInfo()override;
     void setPipelineDepthStencilStateCreateInfo(const VkPipelineDepthStencilStateCreateInfo& createInfo)override;
+
+    VkPipelineTessellationStateCreateInfo createPipelineTessellationStateCreateInfo()override;
+    VkPipelineTessellationStateCreateInfo getVkPipelineTessellationStateCreateInfo()override;
+    void setPipelineTessellationStateCreateInfo(const VkPipelineTessellationStateCreateInfo &createInfo)override;
 public:
     void setDynamicState(VkDynamicState dynamicState)override;
     VkPipelineDynamicStateCreateInfo createDynamicStateCreateInfo(
@@ -146,7 +140,6 @@ private:
     VkFormat findDepthFormat();
 
     bool hasStencilComponent(VkFormat format);
-
     void createDescriptorPool();
 
     void createDescriptorSets();
@@ -189,8 +182,9 @@ private:
 
     VkSurfaceKHR surface;
 
+    VkPhysicalDeviceFeatures deviceFeatures{};
+    VkPhysicalDeviceFeatures logicalFeatures{};
     VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
-    VkPhysicalDeviceFeatures deviceFeatures;
     VkPhysicalDeviceProperties deviceProperties;
     VkDevice device = nullptr;
 
@@ -243,6 +237,7 @@ private:
     VkPipelineColorBlendAttachmentState vkColorBlendAttachment{};
     VkPipelineRasterizationStateCreateInfo vkPipelineRasterizationStateCreateInfo{};
     VkPipelineDepthStencilStateCreateInfo vkPipelineDepthStencilStateCreateInfo{};
+    std::optional<VkPipelineTessellationStateCreateInfo> vkPipelineTessellationStateCreateInfo{};
     std::list<VK_Image*> vkImageList;
     std::list<VK_Sampler*> vkSamplerList;
     std::list<VK_ImageView*> vkImageViewList;

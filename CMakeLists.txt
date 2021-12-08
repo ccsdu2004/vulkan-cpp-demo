@@ -33,6 +33,7 @@ add_library(
      include/VK_Context.h
      include/VK_ShaderSet.h
      include/VK_UniformBuffer.h
+     include/VK_Util.h
      source/stb_image.cpp
      source/VK_ContextImpl.h
      source/VK_ShaderSetImpl.h
@@ -54,15 +55,22 @@ add_library(
      source/VK_Util.cpp
 )
 
-set(DEMOS blend-color hello-triangle clear-color indexed-traingle uniform-buffer uniform-buffer2 viewport-buffer depth-buffer sampler texture)
+set(DEMOS cube blend-color hello-triangle clear-color indexed-traingle uniform-buffer uniform-buffer2 viewport-buffer sampler texture)
+
 
 foreach(var IN LISTS DEMOS)
     message("build ${var}")
     add_executable(${var} demo/main-${var}.cpp)
-    target_link_libraries(${var} vulkan-framwork glfw3 vulkan-1)
+    if(WIN32)
+        target_link_libraries(${var} vulkan-framwork glfw3 vulkan-1)
+    else()
+        target_link_libraries(${var} vulkan-framwork glfw vulkan)
+    endif()
 endforeach()
 
-#add_executable(opengl demo/opengl.cpp glad/glad.c)
-#target_link_libraries(opengl glfw3 GL dl)
+#if(WIN32)
+#    add_executable(opengl demo/opengl.cpp glad/glad.c)
+#    target_link_libraries(opengl glfw3 GL dl)
+#endif()
 
 message("finished ......................")

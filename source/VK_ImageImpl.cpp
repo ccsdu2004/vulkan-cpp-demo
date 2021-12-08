@@ -90,6 +90,8 @@ bool VK_ImageImpl::createImage(uint32_t width, uint32_t height, VkFormat format,
     createInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
     createInfo.usage = usage;
     createInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+    createInfo.queueFamilyIndexCount = 0;
+    createInfo.pQueueFamilyIndices = nullptr;
     createInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
     createInfo.pNext = nullptr;
 

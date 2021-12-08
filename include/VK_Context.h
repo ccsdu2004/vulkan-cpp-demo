@@ -40,6 +40,8 @@ public:
     virtual void setClearColor(float r, float f, float b, float a) = 0;
     virtual void setClearDepthStencil(float depth, uint32_t stencil) = 0;
 
+    virtual void setLogicalDeviceFeatures(const VkPhysicalDeviceFeatures& features) = 0;
+
     virtual VkPipelineColorBlendAttachmentState getColorBlendAttachmentState() = 0;
     virtual void setColorBlendAttachmentState(const VkPipelineColorBlendAttachmentState& state) = 0;
 
@@ -48,6 +50,10 @@ public:
 
     virtual VkPipelineDepthStencilStateCreateInfo getPipelineDepthStencilStateCreateInfo() = 0;
     virtual void setPipelineDepthStencilStateCreateInfo(const VkPipelineDepthStencilStateCreateInfo& createInfo) = 0;
+
+    virtual VkPipelineTessellationStateCreateInfo createPipelineTessellationStateCreateInfo() = 0;
+    virtual VkPipelineTessellationStateCreateInfo getVkPipelineTessellationStateCreateInfo() = 0;
+    virtual void setPipelineTessellationStateCreateInfo(const VkPipelineTessellationStateCreateInfo& createInfo) = 0;
 
     virtual void setDynamicState(VkDynamicState dynamicState) = 0;
 public:

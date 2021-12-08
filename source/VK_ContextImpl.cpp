@@ -111,13 +111,13 @@ bool VK_ContextImpl::initPipeline()
 
 bool VK_ContextImpl::run()
 {
-    static double time = glfwGetTime();
+    //static double time = glfwGetTime();
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();
 
         drawFrame();
-        std::cout << "fps:" << 1 / (glfwGetTime() - time) << std::endl;
-        time = glfwGetTime();
+        //std::cout << "fps:" << 1 / (glfwGetTime() - time) << std::endl;
+        //time = glfwGetTime();
     }
 
     vkDeviceWaitIdle(device);
@@ -161,6 +161,11 @@ void VK_ContextImpl::setClearDepthStencil(float depth, uint32_t stencil)
     vkNeedUpdateSwapChain = true;
 }
 
+void VK_ContextImpl::setLogicalDeviceFeatures(const VkPhysicalDeviceFeatures &features)
+{
+    logicalFeatures = features;
+}
+
 VkPipelineColorBlendAttachmentState VK_ContextImpl::getColorBlendAttachmentState()
 {
     return vkColorBlendAttachment;
@@ -172,7 +177,6 @@ void VK_ContextImpl::setColorBlendAttachmentState(const VkPipelineColorBlendAtta
     if(memcmp(&vkColorBlendAttachment, &state, size)) {
         vkColorBlendAttachment = state;
         vkNeedUpdateSwapChain = true;
-        std::cout << 1111 << std::endl;
     }
 }
 
@@ -196,6 +200,26 @@ void VK_ContextImpl::setPipelineDepthStencilStateCreateInfo(const VkPipelineDept
 {
     vkPipelineDepthStencilStateCreateInfo = createInfo;
     vkNeedUpdateSwapChain = true;
+}
+
+VkPipelineTessellationStateCreateInfo VK_ContextImpl::createPipelineTessellationStateCreateInfo()
+{
+    VkPipelineTessellationStateCreateInfo createInfo;
+    createInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_TESSELLATION_STATE_CREATE_INFO;
+    createInfo.patchControlPoints = 32;
+    createInfo.flags = 0;
+    createInfo.pNext = nullptr;
+    return createInfo;
+}
+
+VkPipelineTessellationStateCreateInfo VK_ContextImpl::getVkPipelineTessellationStateCreateInfo()
+{
+    return vkPipelineTessellationStateCreateInfo.value();
+}
+
+void VK_ContextImpl::setPipelineTessellationStateCreateInfo(const VkPipelineTessellationStateCreateInfo &createInfo)
+{
+    vkPipelineTessellationStateCreateInfo = std::optional<VkPipelineTessellationStateCreateInfo>(createInfo);
 }
 
 void VK_ContextImpl::setDynamicState(VkDynamicState dynamicState)
@@ -442,14 +466,13 @@ bool VK_ContextImpl::createLogicalDevice()
     VkPhysicalDeviceFeatures deviceFeatures{};
     deviceFeatures.multiViewport = VK_TRUE;
     deviceFeatures.samplerAnisotropy = VK_TRUE;
-
     VkDeviceCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
 
     createInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
     createInfo.pQueueCreateInfos = queueCreateInfos.data();
 
-    createInfo.pEnabledFeatures = &deviceFeatures;
+    createInfo.pEnabledFeatures = &logicalFeatures;
 
     createInfo.enabledExtensionCount = static_cast<uint32_t>(deviceExtensions.size());
     createInfo.ppEnabledExtensionNames = deviceExtensions.data();
@@ -526,9 +549,6 @@ bool VK_ContextImpl::createSwapChainImageViews()
 
     for (size_t i = 0; i < swapChainImages.size(); i++) {
         VkImageViewCreateInfo viewCreateInfo = VK_ImageView::createImageViewCreateInfo(swapChainImages[i], swapChainImageFormat);
-        //VkSamplerCreateInfo samplerCreateInfo = VK_Sampler::createSamplerCreateInfo();
-        //samplerCreateInfo.anisotropyEnable = VK_FALSE;
-
         viewCreateInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 
         VK_ImageViewImpl* view = new VK_ImageViewImpl(device, this);
@@ -892,7 +912,12 @@ bool VK_ContextImpl::createGraphicsPipeline()
 
     VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
     inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-    inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+
+    if(vkPipelineTessellationStateCreateInfo.has_value()) {
+        inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_PATCH_LIST;
+    } else
+        inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+
     inputAssembly.primitiveRestartEnable = VK_FALSE;
 
     VkPipelineViewportStateCreateInfo viewportState{};
@@ -920,8 +945,11 @@ bool VK_ContextImpl::createGraphicsPipeline()
 
     VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
     pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+    pipelineLayoutInfo.pNext = nullptr;
     pipelineLayoutInfo.setLayoutCount = 1;
     pipelineLayoutInfo.pSetLayouts = &descriptorSetLayout;
+    pipelineLayoutInfo.pushConstantRangeCount = 0;
+    pipelineLayoutInfo.pPushConstantRanges = nullptr;
 
     if (vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &pipelineLayout) != VK_SUCCESS) {
         std::cerr << "failed to create pipeline layout!" << std::endl;
@@ -939,6 +967,11 @@ bool VK_ContextImpl::createGraphicsPipeline()
     pipelineInfo.pDepthStencilState = &vkPipelineDepthStencilStateCreateInfo;
     pipelineInfo.pMultisampleState = &multisampling;
     pipelineInfo.pColorBlendState = &colorBlending;
+
+    if(!vkPipelineTessellationStateCreateInfo.has_value())
+        pipelineInfo.pTessellationState = nullptr;
+    else
+        pipelineInfo.pTessellationState = &vkPipelineTessellationStateCreateInfo.value();
 
     auto dynamicState = createDynamicStateCreateInfo();
     pipelineInfo.pDynamicState = &dynamicState;
@@ -1003,11 +1036,12 @@ void VK_ContextImpl::createDepthResources()
     VkFormat depthFormat = findDepthFormat();
 
     vkDepthImage = new VK_ImageImpl(device, this);
-    vkDepthImage->createImage(vkSwapChainExtent.width, vkSwapChainExtent.height, depthFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    bool ok = vkDepthImage->createImage(vkSwapChainExtent.width, vkSwapChainExtent.height, depthFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    if(!ok)
+        std::cerr << "create depth image failed\n";
 
     auto createInfo = VK_ImageView::createImageViewCreateInfo(vkDepthImage->getImage(), depthFormat);
     createInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-    //createImageView(createInfo);
     vkDepthImageView = new VK_ImageViewImpl(device, this);
     vkDepthImageView->create(createInfo);
 }
@@ -1424,13 +1458,23 @@ void VK_ContextImpl::initRasterCreateInfo()
 void VK_ContextImpl::initDepthStencilStateCreateInfo()
 {
     vkPipelineDepthStencilStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+    vkPipelineDepthStencilStateCreateInfo.pNext = NULL;
+    vkPipelineDepthStencilStateCreateInfo.flags = 0;
     vkPipelineDepthStencilStateCreateInfo.depthTestEnable = VK_TRUE;
     vkPipelineDepthStencilStateCreateInfo.depthWriteEnable = VK_TRUE;
     vkPipelineDepthStencilStateCreateInfo.depthCompareOp = VK_COMPARE_OP_LESS;
     vkPipelineDepthStencilStateCreateInfo.depthBoundsTestEnable = VK_FALSE;
-    vkPipelineDepthStencilStateCreateInfo.stencilTestEnable = VK_FALSE;
     vkPipelineDepthStencilStateCreateInfo.minDepthBounds = 0.0f;
     vkPipelineDepthStencilStateCreateInfo.maxDepthBounds = 1.0f;
+    vkPipelineDepthStencilStateCreateInfo.stencilTestEnable = VK_FALSE;
+    vkPipelineDepthStencilStateCreateInfo.back.failOp = VK_STENCIL_OP_KEEP;
+    vkPipelineDepthStencilStateCreateInfo.back.passOp = VK_STENCIL_OP_KEEP;
+    vkPipelineDepthStencilStateCreateInfo.back.compareOp = VK_COMPARE_OP_ALWAYS;
+    vkPipelineDepthStencilStateCreateInfo.back.compareMask = 0;
+    vkPipelineDepthStencilStateCreateInfo.back.reference = 0;
+    vkPipelineDepthStencilStateCreateInfo.back.depthFailOp = VK_STENCIL_OP_KEEP;
+    vkPipelineDepthStencilStateCreateInfo.back.writeMask = 0;
+    vkPipelineDepthStencilStateCreateInfo.front = vkPipelineDepthStencilStateCreateInfo.back;
 }
 
 void VK_ContextImpl::initViewport()
@@ -1476,11 +1520,21 @@ void VK_ContextImpl::transitionImageLayout(VkImage image, VkFormat format, VkIma
     if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) {
         barrier.srcAccessMask = 0;
         barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+
+        sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
         destinationStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
     } else if (oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
         barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
         barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
         sourceStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+        destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+    } else if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL) {
+        barrier.srcAccessMask = 0;
+        barrier.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+
+        sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+        destinationStage = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
     } else {
         std::cerr << "unsupported layout transition!" << std::endl;
     }

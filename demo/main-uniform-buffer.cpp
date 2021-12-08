@@ -61,14 +61,6 @@ int main()
     VkDescriptorSetLayoutBinding uniformBinding = VK_ShaderSet::createDescriptorSetLayoutBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT);
     shaderSet->addDescriptorSetLayoutBinding(uniformBinding);
 
-    auto samplerBinding = VK_ShaderSet::createDescriptorSetLayoutBinding(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
-    auto samplerCreateInfo  = VK_Sampler::createSamplerCreateInfo();
-    auto samplerPtr = context->createSampler(samplerCreateInfo);
-    VkSampler sampler = samplerPtr->getSampler();
-    samplerBinding.pImmutableSamplers = &sampler;
-
-    shaderSet->addDescriptorSetLayoutBinding(samplerBinding);
-
     if(!shaderSet->isValid()) {
         std::cerr << "invalid shaderSet" << std::endl;
         shaderSet->release();

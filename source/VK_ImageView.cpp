@@ -1,6 +1,6 @@
 #include "VK_ImageView.h"
 
-VkImageViewCreateInfo VK_ImageView::createImageViewCreateInfo(VkImage image, VkFormat format)
+VkImageViewCreateInfo VK_ImageView::createImageViewCreateInfo(VkImage image, VkFormat format,uint32_t mipLevels)
 {
     VkImageViewCreateInfo viewInfo{};
     viewInfo.pNext = nullptr;
@@ -14,7 +14,7 @@ VkImageViewCreateInfo VK_ImageView::createImageViewCreateInfo(VkImage image, VkF
     viewInfo.components.a = VK_COMPONENT_SWIZZLE_A;
     viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
     viewInfo.subresourceRange.baseMipLevel = 0;
-    viewInfo.subresourceRange.levelCount = 1;
+    viewInfo.subresourceRange.levelCount = mipLevels;
     viewInfo.subresourceRange.baseArrayLayer = 0;
     viewInfo.subresourceRange.layerCount = 1;
     return viewInfo;

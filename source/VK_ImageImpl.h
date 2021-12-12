@@ -18,6 +18,7 @@ public:
     VkImage getImage()const override;
     int getWidth()const override;
     int getHeight()const override;
+    int getMipLevel()const override;
 
     void release()override;
 private:
@@ -26,6 +27,7 @@ private:
     VkImageCreateInfo createInfo = {};
     VkImage textureImage = 0;
     VkDeviceMemory textureImageMemory = 0;
+    uint32_t mipLevels = 1;
 };
 
 #endif // VK_IMAGEIMP_H

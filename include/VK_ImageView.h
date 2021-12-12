@@ -6,7 +6,7 @@
 class VK_ImageView : public VK_Deleter
 {
 public:
-    static VkImageViewCreateInfo createImageViewCreateInfo(VkImage image, VkFormat format);
+    static VkImageViewCreateInfo createImageViewCreateInfo(VkImage image, VkFormat format,uint32_t mipLevels = 1);
 
     virtual void setSampler(VkSampler sampler) = 0;
     virtual VkWriteDescriptorSet createWriteDescriptorSet(VkDescriptorSet descriptorSet)const = 0;

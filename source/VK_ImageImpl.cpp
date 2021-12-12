@@ -1,5 +1,6 @@
 #include <cstring>
 #include <iostream>
+#include <cmath>
 #include <stb_image.h>
 #include "VK_ImageImpl.h"
 #include "VK_ContextImpl.h"
@@ -37,7 +38,7 @@ bool VK_ImageImpl::load(const std::string &filename)
 
     stbi_image_free(pixels);
 
-    createImage(width, height, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    createImage(width, height, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL, /*VK_IMAGE_USAGE_TRANSFER_SRC_BIT |*/ VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
     context->transitionImageLayout(textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
     context->copyBufferToImage(stagingBuffer, textureImage, static_cast<uint32_t>(width), static_cast<uint32_t>(height));
@@ -45,6 +46,9 @@ bool VK_ImageImpl::load(const std::string &filename)
 
     vkDestroyBuffer(device, stagingBuffer, nullptr);
     vkFreeMemory(device, stagingBufferMemory, nullptr);
+
+    mipLevels = 1;//static_cast<uint32_t>(std::floor(std::log2(std::max(width, height)))) + 1;
+    //context->generateMipmaps(textureImage, VK_FORMAT_R8G8B8A8_UNORM, width, height, mipLevels);
 
     return true;
 }
@@ -62,6 +66,11 @@ int VK_ImageImpl::getWidth() const
 int VK_ImageImpl::getHeight() const
 {
     return createInfo.extent.height;
+}
+
+int VK_ImageImpl::getMipLevel() const
+{
+    return mipLevels;
 }
 
 void VK_ImageImpl::release()
@@ -83,7 +92,7 @@ bool VK_ImageImpl::createImage(uint32_t width, uint32_t height, VkFormat format,
     createInfo.extent.width = width;
     createInfo.extent.height = height;
     createInfo.extent.depth = 1;
-    createInfo.mipLevels = 1;
+    createInfo.mipLevels = mipLevels;
     createInfo.arrayLayers = 1;
     createInfo.format = format;
     createInfo.tiling = tiling;

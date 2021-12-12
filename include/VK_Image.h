@@ -9,6 +9,7 @@ public:
     virtual VkImage getImage()const = 0;
     virtual int getWidth()const = 0;
     virtual int getHeight()const = 0;
+    virtual int getMipLevel()const = 0;
 };
 
 #endif // VK_IMAGE_HPP

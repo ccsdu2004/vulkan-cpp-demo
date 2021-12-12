@@ -1,7 +1,7 @@
 #include <iostream>
 #include "VK_SamplerImpl.h"
 
-VkSamplerCreateInfo VK_Sampler::createSamplerCreateInfo()
+VkSamplerCreateInfo VK_Sampler::createSamplerCreateInfo(uint32_t mipLevels)
 {
     VkSamplerCreateInfo samplerInfo{};
     samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
@@ -10,7 +10,7 @@ VkSamplerCreateInfo VK_Sampler::createSamplerCreateInfo()
     samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
     samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
     samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-    samplerInfo.anisotropyEnable = VK_TRUE;
+    samplerInfo.anisotropyEnable = VK_FALSE;//VK_TRUE;
     samplerInfo.maxAnisotropy = 1.0f;
     //deviceProperties.limits.maxSamplerAnisotropy;
     samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
@@ -18,6 +18,9 @@ VkSamplerCreateInfo VK_Sampler::createSamplerCreateInfo()
     samplerInfo.compareEnable = VK_FALSE;
     samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
     samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+    samplerInfo.minLod = 0;
+    samplerInfo.maxLod = static_cast<float>(mipLevels);
+    samplerInfo.mipLodBias = 0;
     return samplerInfo;
 }
 

@@ -55,7 +55,7 @@ add_library(
      source/VK_Util.cpp
 )
 
-set(DEMOS cube blend-color hello-triangle clear-color indexed-traingle uniform-buffer uniform-buffer2 viewport-buffer sampler texture)
+set(DEMOS cube-texture cube-color blend-color hello-triangle clear-color indexed-traingle uniform-buffer uniform-buffer2 viewport-buffer sampler texture)
 
 
 foreach(var IN LISTS DEMOS)
@@ -68,9 +68,10 @@ foreach(var IN LISTS DEMOS)
     endif()
 endforeach()
 
-#if(WIN32)
-#    add_executable(opengl demo/opengl.cpp glad/glad.c)
-#    target_link_libraries(opengl glfw3 GL dl)
-#endif()
+if(WIN32)
+else()
+    add_executable(opengl demo/opengl.cpp glad/glad.c)
+    target_link_libraries(opengl glfw GL dl)
+endif()
 
 message("finished ......................")

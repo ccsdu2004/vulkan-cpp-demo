@@ -53,8 +53,8 @@ int main()
     context->initVulkanDevice(vkConfig);
 
     auto shaderSet = context->createShaderSet();
-    shaderSet->addShader("../shader/vertex/vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-    shaderSet->addShader("../shader/vertex/frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+    shaderSet->addShader("../shader/cube-color/vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+    shaderSet->addShader("../shader/cube-color/frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 
     shaderSet->appendAttributeDescription(0, sizeof (float) * 3);
     shaderSet->appendAttributeDescription(1, sizeof (float) * 4);

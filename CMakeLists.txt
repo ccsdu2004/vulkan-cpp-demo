@@ -53,10 +53,24 @@ add_library(
      source/VK_ValidationLayer.cpp
      source/VK_ShaderSet.cpp
      source/VK_Util.cpp
+     source/VK_ObjLoader.cpp
+     source/VK_ObjLoader.h
+     source/tiny_obj_loader.cc
 )
 
-set(DEMOS cube-texture cube-color blend-color hello-triangle clear-color indexed-traingle uniform-buffer uniform-buffer2 viewport-buffer sampler texture)
-
+set(DEMOS
+    cube-texture
+    cube-color
+    hello-triangle
+    clear-color
+    indexed-traingle
+    uniform-buffer
+    uniform-buffer2
+    viewport-buffer
+    sampler
+    texture
+    model-mesh
+    )
 
 foreach(var IN LISTS DEMOS)
     message("build ${var}")

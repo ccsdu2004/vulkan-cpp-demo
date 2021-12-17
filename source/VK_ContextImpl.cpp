@@ -6,18 +6,19 @@
 #include "VK_ShaderSetImpl.h"
 #include "VK_Buffer.h"
 #include "VK_VertexBuffer.h"
+#include "VK_ObjLoader.h"
 #include "VK_UniformBufferImpl.h"
 #include "VK_ImageImpl.h"
 #include "VK_ImageViewImpl.h"
 #include "VK_SamplerImpl.h"
 #include "VK_Util.h"
 
-VK_Context* createVkContext(const VK_ContextConfig& config)
+VK_Context *createVkContext(const VK_ContextConfig &config)
 {
     return new VK_ContextImpl(config);
 }
 
-VK_ContextImpl::VK_ContextImpl(const VK_ContextConfig& config):
+VK_ContextImpl::VK_ContextImpl(const VK_ContextConfig &config):
     appConfig(config)
 {
     glfwInit();
@@ -35,14 +36,14 @@ void VK_ContextImpl::release()
 
 bool VK_ContextImpl::createWindow(int width, int height, bool resize)
 {
-    if(window)
+    if (window)
         return false;
 
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     glfwWindowHint(GLFW_RESIZABLE, resize);
 
     window = glfwCreateWindow(width, height, appConfig.name.data(), nullptr, nullptr);
-    if(!window) {
+    if (!window) {
         std::cerr << "create glfw window failed\n";
         return false;
     }
@@ -56,11 +57,11 @@ bool VK_ContextImpl::createWindow(int width, int height, bool resize)
 
 void VK_ContextImpl::setOnFrameSizeChanged(std::function<void (int, int)> cb)
 {
-    if(cb)
+    if (cb)
         windowSizeChangedCallback = cb;
 }
 
-bool VK_ContextImpl::initVulkanDevice(const VK_Config& config)
+bool VK_ContextImpl::initVulkanDevice(const VK_Config &config)
 {
     vkConfig = config;
 
@@ -74,9 +75,9 @@ bool VK_ContextImpl::initVulkanDevice(const VK_Config& config)
            createSwapChainImageViews();
 }
 
-bool VK_ContextImpl::initVulkanContext(VK_ShaderSet* shaderSet)
+bool VK_ContextImpl::initVulkanContext(VK_ShaderSet *shaderSet)
 {
-    if(!shaderSet) {
+    if (!shaderSet) {
         std::cerr << "invalid input shaderSet" << std::endl;
         return false;
     }
@@ -137,7 +138,7 @@ VK_Viewports VK_ContextImpl::getViewports() const
 
 void VK_ContextImpl::setViewports(const VK_Viewports &viewports)
 {
-    if(vkViewports != viewports) {
+    if (vkViewports != viewports) {
         vkViewports = viewports;
         vkNeedUpdateSwapChain = true;
     }
@@ -174,7 +175,7 @@ VkPipelineColorBlendAttachmentState VK_ContextImpl::getColorBlendAttachmentState
 void VK_ContextImpl::setColorBlendAttachmentState(const VkPipelineColorBlendAttachmentState &state)
 {
     int size = sizeof(VkPipelineColorBlendAttachmentState);
-    if(memcmp(&vkColorBlendAttachment, &state, size)) {
+    if (memcmp(&vkColorBlendAttachment, &state, size)) {
         vkColorBlendAttachment = state;
         vkNeedUpdateSwapChain = true;
     }
@@ -239,16 +240,16 @@ VkPipelineDynamicStateCreateInfo VK_ContextImpl::createDynamicStateCreateInfo(Vk
 
 void VK_ContextImpl::framebufferResizeCallback(GLFWwindow *window, int width, int height)
 {
-    auto context = reinterpret_cast<VK_ContextImpl*>(glfwGetWindowUserPointer(window));
-    if(context->windowSizeChangedCallback)
+    auto context = reinterpret_cast<VK_ContextImpl *>(glfwGetWindowUserPointer(window));
+    if (context->windowSizeChangedCallback)
         context->windowSizeChangedCallback(width, height);
     context->framebufferResized = true;
 }
 
 void VK_ContextImpl::mouseButtonCallback(GLFWwindow *window, int button, int state, int mods)
 {
-    auto context = reinterpret_cast<VK_ContextImpl*>(glfwGetWindowUserPointer(window));
-    if(context->appConfig.mouseCallback)
+    auto context = reinterpret_cast<VK_ContextImpl *>(glfwGetWindowUserPointer(window));
+    if (context->appConfig.mouseCallback)
         context->appConfig.mouseCallback(button, state, mods);
 }
 
@@ -273,7 +274,7 @@ void VK_ContextImpl::cleanupSwapChain()
 
     vkDestroySwapchainKHR(device, swapChain, nullptr);
 
-    for(auto buffer : vkUniformBuffers)
+    for (auto buffer : vkUniformBuffers)
         buffer->clearBuffer();
 
     vkDestroyDescriptorPool(device, descriptorPool, nullptr);
@@ -281,12 +282,12 @@ void VK_ContextImpl::cleanupSwapChain()
 
 void VK_ContextImpl::cleanup()
 {
-    if(vkShaderSet)
+    if (vkShaderSet)
         vkShaderSet->release();
 
-    while(true) {
+    while (true) {
         auto itr = vkBuffers.begin();
-        if(itr == vkBuffers.end())
+        if (itr == vkBuffers.end())
             break;
         (*itr)->release();
     }
@@ -350,7 +351,7 @@ void VK_ContextImpl::recreateSwapChain()
 
     createFramebuffers();
 
-    for(auto buffer : vkUniformBuffers)
+    for (auto buffer : vkUniformBuffers)
         buffer->initBuffer(swapChainImageViews.size());
 
     createDescriptorPool();
@@ -421,7 +422,7 @@ bool VK_ContextImpl::pickPhysicalDevice()
 
     std::vector<VkPhysicalDevice> deviceList;
 
-    for (const auto& device : devices) {
+    for (const auto &device : devices) {
         if (isDeviceSuitable(device)) {
             physicalDevice = device;
             deviceList.push_back(device);
@@ -433,7 +434,7 @@ bool VK_ContextImpl::pickPhysicalDevice()
         return false;
     }
 
-    for(auto device : deviceList) {
+    for (auto device : deviceList) {
         vkGetPhysicalDeviceFeatures(device, &deviceFeatures);
         vkGetPhysicalDeviceProperties(device, &deviceProperties);
         std::cout << "device name:" << deviceProperties.deviceName << std::endl;
@@ -548,12 +549,13 @@ bool VK_ContextImpl::createSwapChainImageViews()
     swapChainImageViews.resize(swapChainImages.size());
 
     for (size_t i = 0; i < swapChainImages.size(); i++) {
-        VkImageViewCreateInfo viewCreateInfo = VK_ImageView::createImageViewCreateInfo(swapChainImages[i], swapChainImageFormat);
+        VkImageViewCreateInfo viewCreateInfo = VK_ImageView::createImageViewCreateInfo(swapChainImages[i],
+                                               swapChainImageFormat);
         viewCreateInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 
-        VK_ImageViewImpl* view = new VK_ImageViewImpl(device, this);
+        VK_ImageViewImpl *view = new VK_ImageViewImpl(device, this);
         view->setRemoveFromContainerWhenRelease(false);
-        if(!view->create(viewCreateInfo)) {
+        if (!view->create(viewCreateInfo)) {
             std::cerr << "failed to create image views" << std::endl;
             return false;
         }
@@ -638,9 +640,9 @@ bool VK_ContextImpl::createDescriptorSetLayout()
     return true;
 }
 
-bool VK_ContextImpl::isValidPipelineCacheData(const std::string& filename, const char *buffer, uint32_t size)
+bool VK_ContextImpl::isValidPipelineCacheData(const std::string &filename, const char *buffer, uint32_t size)
 {
-    if(size > 32) {
+    if (size > 32) {
         uint32_t header = 0;
         uint32_t version = 0;
         uint32_t vendor = 0;
@@ -681,10 +683,10 @@ bool VK_ContextImpl::isValidPipelineCacheData(const std::string& filename, const
             std::cerr << "uuid mismatch in " << filename << std::endl;
             std::cerr << "cache contains: " << std::endl;
 
-            auto fn = [](uint8_t* uuid) {
-                for(int i = 0; i < 16; i++) {
+            auto fn = [](uint8_t *uuid) {
+                for (int i = 0; i < 16; i++) {
                     std::cout << (int)uuid[i] << " ";
-                    if(i % 4 == 3)
+                    if (i % 4 == 3)
                         std::cerr << std::endl;
                 }
                 std::cerr << std::endl;
@@ -726,13 +728,13 @@ bool VK_ContextImpl::saveGraphicsPiplineCache()
 
     auto cacheData = std::vector<char>(sizeof(char) * cacheSize, 0);
 
-    if(vkGetPipelineCacheData(device, pipelineCache, &cacheSize, &cacheData[0]) != VK_SUCCESS) {
+    if (vkGetPipelineCacheData(device, pipelineCache, &cacheSize, &cacheData[0]) != VK_SUCCESS) {
         std::cerr << "getting cache fail from pipelinecache" << std::endl;
         return false;
     }
 
     std::ofstream stream(vkConfig.pipelineCacheFile, std::ios::binary);
-    if(stream.is_open()) {
+    if (stream.is_open()) {
         stream.write(cacheData.data(), cacheData.size());
         stream.close();
     } else {
@@ -747,35 +749,52 @@ VK_ShaderSet *VK_ContextImpl::createShaderSet()
     return new VK_ShaderSetImpl(device);
 }
 
-VK_Buffer *VK_ContextImpl::createVertexBuffer(const std::vector<float> &vertices, uint32_t count, const std::vector<uint16_t> &indices)
+VK_Buffer *VK_ContextImpl::createVertexBuffer(const std::vector<float> &vertices, uint32_t count,
+        const std::vector<uint32_t> &indices)
 {
     auto vertexBuffer = new VK_VertexBuffer(this, device);
     vertexBuffer->create(vertices, count, indices);
     return vertexBuffer;
 }
 
-VK_Buffer *VK_ContextImpl::createVertexBuffer(const std::vector<VK_Vertex> &vertices, const std::vector<uint16_t>& indices)
+VK_Buffer *VK_ContextImpl::createVertexBuffer(const std::vector<VK_Vertex> &vertices,
+        const std::vector<uint32_t> &indices)
 {
     auto vertexBuffer = new VK_VertexBuffer(this, device);
     vertexBuffer->create(vertices, indices);
     return vertexBuffer;
 }
 
-void VK_ContextImpl::removeBuffer(VK_Buffer * buffer)
+VK_Buffer *VK_ContextImpl::createVertexBuffer(const std::string &filename, bool zero)
+{
+    VK_OBJLoader* loader = new VK_OBJLoader(this, device);
+    if(!loader->load(filename, zero)) {
+        loader->release();
+        return nullptr;
+    }
+
+    auto data = loader->getData();
+    if(!data.empty()) {
+        loader->create(data[0], 8, std::vector<uint32_t>());
+    }
+    return loader;
+}
+
+void VK_ContextImpl::removeBuffer(VK_Buffer *buffer)
 {
     vkBuffers.remove(buffer);
 }
 
-void VK_ContextImpl::addBuffer(VK_Buffer * buffer)
+void VK_ContextImpl::addBuffer(VK_Buffer *buffer)
 {
-    if(buffer)
+    if (buffer)
         vkBuffers.push_back(buffer);
 }
 
 VK_Image *VK_ContextImpl::createImage(const std::string &image)
 {
     auto ptr = new VK_ImageImpl(device, this);
-    if(!ptr->load(image)) {
+    if (!ptr->load(image)) {
         delete ptr;
         return nullptr;
     }
@@ -786,14 +805,14 @@ VK_Image *VK_ContextImpl::createImage(const std::string &image)
 
 void VK_ContextImpl::onReleaseImage(VK_Image *image)
 {
-    if(image)
+    if (image)
         vkImageList.remove(image);
 }
 
 VK_Sampler *VK_ContextImpl::createSampler(const VkSamplerCreateInfo &samplerInfo)
 {
     auto sampler = new VK_SamplerImpl(device, this);
-    if(!sampler->create(samplerInfo)) {
+    if (!sampler->create(samplerInfo)) {
         delete sampler;
         return nullptr;
     }
@@ -809,7 +828,7 @@ void VK_ContextImpl::removeSampler(VK_Sampler *sampler)
 VK_ImageView *VK_ContextImpl::createImageView(const VkImageViewCreateInfo &viewCreateInfo)
 {
     auto imageView = new VK_ImageViewImpl(device, this);
-    if(!imageView->create(viewCreateInfo)) {
+    if (!imageView->create(viewCreateInfo)) {
         delete imageView;
         return nullptr;
     }
@@ -819,9 +838,9 @@ VK_ImageView *VK_ContextImpl::createImageView(const VkImageViewCreateInfo &viewC
 
 void VK_ContextImpl::addImageView(VK_ImageView *imageView)
 {
-    if(imageView) {
+    if (imageView) {
         auto find = std::find(vkImageViewList.begin(), vkImageViewList.end(), imageView);
-        if(find != vkImageViewList.end())
+        if (find != vkImageViewList.end())
             return;
         vkImageViewList.push_back(imageView);
         vkUnusedImageViewList.erase(imageView);
@@ -844,9 +863,9 @@ VK_UniformBuffer *VK_ContextImpl::createUniformBuffer(uint32_t binding, uint32_t
 
 void VK_ContextImpl::addUniformBuffer(VK_UniformBuffer *uniformBuffer)
 {
-    if(uniformBuffer) {
+    if (uniformBuffer) {
         auto find = std::find(vkUniformBuffers.begin(), vkUniformBuffers.end(), uniformBuffer);
-        if(find == vkUniformBuffers.end())
+        if (find == vkUniformBuffers.end())
             vkUniformBuffers.push_back(uniformBuffer);
     }
 }
@@ -856,7 +875,8 @@ void VK_ContextImpl::removeUniformBuffer(VK_UniformBuffer *uniformBuffer)
     vkUniformBuffers.remove(uniformBuffer);
 }
 
-bool VK_ContextImpl::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer & buffer, VkDeviceMemory & bufferMemory)
+bool VK_ContextImpl::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties,
+                                  VkBuffer &buffer, VkDeviceMemory &bufferMemory)
 {
     VkBufferCreateInfo bufferInfo{};
     bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -913,7 +933,7 @@ bool VK_ContextImpl::createGraphicsPipeline()
     VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
     inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
 
-    if(vkPipelineTessellationStateCreateInfo.has_value()) {
+    if (vkPipelineTessellationStateCreateInfo.has_value()) {
         inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_PATCH_LIST;
     } else
         inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
@@ -968,7 +988,7 @@ bool VK_ContextImpl::createGraphicsPipeline()
     pipelineInfo.pMultisampleState = &multisampling;
     pipelineInfo.pColorBlendState = &colorBlending;
 
-    if(!vkPipelineTessellationStateCreateInfo.has_value())
+    if (!vkPipelineTessellationStateCreateInfo.has_value())
         pipelineInfo.pTessellationState = nullptr;
     else
         pipelineInfo.pTessellationState = &vkPipelineTessellationStateCreateInfo.value();
@@ -1036,8 +1056,9 @@ void VK_ContextImpl::createDepthResources()
     VkFormat depthFormat = findDepthFormat();
 
     vkDepthImage = new VK_ImageImpl(device, this);
-    bool ok = vkDepthImage->createImage(vkSwapChainExtent.width, vkSwapChainExtent.height, depthFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-    if(!ok)
+    bool ok = vkDepthImage->createImage(vkSwapChainExtent.width, vkSwapChainExtent.height, depthFormat,
+                                        VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    if (!ok)
         std::cerr << "create depth image failed\n";
 
     auto createInfo = VK_ImageView::createImageViewCreateInfo(vkDepthImage->getImage(), depthFormat);
@@ -1046,7 +1067,8 @@ void VK_ContextImpl::createDepthResources()
     vkDepthImageView->create(createInfo);
 }
 
-VkFormat VK_ContextImpl::findSupportedFormat(const std::vector<VkFormat> &candidates, VkImageTiling tiling, VkFormatFeatureFlags features)
+VkFormat VK_ContextImpl::findSupportedFormat(const std::vector<VkFormat> &candidates, VkImageTiling tiling,
+        VkFormatFeatureFlags features)
 {
     for (VkFormat format : candidates) {
         VkFormatProperties props;
@@ -1087,7 +1109,7 @@ void VK_ContextImpl::createDescriptorPool()
 
     VkDescriptorPoolCreateInfo poolInfo{};
     poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-    if(vkShaderSet->getDescriptorPoolSizeCount() > 0) {
+    if (vkShaderSet->getDescriptorPoolSizeCount() > 0) {
         poolInfo.poolSizeCount = vkShaderSet->getDescriptorPoolSizeCount();
         poolInfo.pPoolSizes = vkShaderSet->getDescriptorPoolSizeData();
     } else {
@@ -1119,10 +1141,10 @@ void VK_ContextImpl::createDescriptorSets()
 
     for (size_t i = 0; i < swapChainImages.size(); i++) {
         std::vector<VkWriteDescriptorSet> descriptorWrites;
-        for(auto buffer : vkUniformBuffers)
+        for (auto buffer : vkUniformBuffers)
             descriptorWrites.push_back(buffer->createWriteDescriptorSet(i, descriptorSets[i]));
 
-        for(auto imageView : vkImageViewList) {
+        for (auto imageView : vkImageViewList) {
             descriptorWrites.push_back(imageView->createWriteDescriptorSet(descriptorSets[i]));
         }
 
@@ -1162,7 +1184,7 @@ bool VK_ContextImpl::createCommandBuffers()
         renderPassInfo.renderArea.extent = vkSwapChainExtent;
 
         std::array<VkClearValue, 2> clearValues{};
-        memcpy((char*)&clearValues[0], &vkClearValue, sizeof(vkClearValue));
+        memcpy((char *)&clearValues[0], &vkClearValue, sizeof(vkClearValue));
         clearValues[1].depthStencil = {1.0f, 0};
 
         renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
@@ -1171,9 +1193,10 @@ bool VK_ContextImpl::createCommandBuffers()
         vkCmdBeginRenderPass(commandBuffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
         vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
-        vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[i], 0, nullptr);
+        vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[i], 0,
+                                nullptr);
 
-        for(auto itr = vkBuffers.begin(); itr != vkBuffers.end(); itr++)
+        for (auto itr = vkBuffers.begin(); itr != vkBuffers.end(); itr++)
             (*itr)->render(commandBuffers[i]);
 
         vkCmdEndRenderPass(commandBuffers[i]);
@@ -1211,7 +1234,7 @@ void VK_ContextImpl::createSyncObjects()
 
 void VK_ContextImpl::drawFrame()
 {
-    if(vkNeedUpdateSwapChain) {
+    if (vkNeedUpdateSwapChain) {
         recreateSwapChain();
         vkNeedUpdateSwapChain = false;
     }
@@ -1219,7 +1242,8 @@ void VK_ContextImpl::drawFrame()
     vkWaitForFences(device, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
 
     uint32_t imageIndex;
-    VkResult result = vkAcquireNextImageKHR(device, swapChain, UINT64_MAX, imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
+    VkResult result = vkAcquireNextImageKHR(device, swapChain, UINT64_MAX, imageAvailableSemaphores[currentFrame],
+                                            VK_NULL_HANDLE, &imageIndex);
 
     if (result == VK_ERROR_OUT_OF_DATE_KHR) {
         recreateSwapChain();
@@ -1228,7 +1252,7 @@ void VK_ContextImpl::drawFrame()
         throw std::runtime_error("failed to acquire swap chain image!");
     }
 
-    for(auto buffer : vkUniformBuffers)
+    for (auto buffer : vkUniformBuffers)
         buffer->update(imageIndex);
 
     if (imagesInFlight[imageIndex] != VK_NULL_HANDLE) {
@@ -1286,8 +1310,9 @@ void VK_ContextImpl::drawFrame()
 
 VkSurfaceFormatKHR VK_ContextImpl::chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR> &availableFormats)
 {
-    for (const auto& availableFormat : availableFormats) {
-        if (availableFormat.format == VK_FORMAT_B8G8R8A8_SRGB && availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
+    for (const auto &availableFormat : availableFormats) {
+        if (availableFormat.format == VK_FORMAT_B8G8R8A8_SRGB
+            && availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
             return availableFormat;
         }
     }
@@ -1297,7 +1322,7 @@ VkSurfaceFormatKHR VK_ContextImpl::chooseSwapSurfaceFormat(const std::vector<VkS
 
 VkPresentModeKHR VK_ContextImpl::chooseSwapPresentMode(const std::vector<VkPresentModeKHR> &availablePresentModes)
 {
-    for (const auto& availablePresentMode : availablePresentModes) {
+    for (const auto &availablePresentMode : availablePresentModes) {
         if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR) {
             return availablePresentMode;
         }
@@ -1306,7 +1331,7 @@ VkPresentModeKHR VK_ContextImpl::chooseSwapPresentMode(const std::vector<VkPrese
     return VK_PRESENT_MODE_FIFO_KHR;
 }
 
-VkExtent2D VK_ContextImpl::chooseSwapExtent(const VkSurfaceCapabilitiesKHR & capabilities)
+VkExtent2D VK_ContextImpl::chooseSwapExtent(const VkSurfaceCapabilitiesKHR &capabilities)
 {
     if (capabilities.currentExtent.width != UINT32_MAX) {
         return capabilities.currentExtent;
@@ -1319,8 +1344,10 @@ VkExtent2D VK_ContextImpl::chooseSwapExtent(const VkSurfaceCapabilitiesKHR & cap
             static_cast<uint32_t>(height)
         };
 
-        actualExtent.width = std::clamp(actualExtent.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
-        actualExtent.height = std::clamp(actualExtent.height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
+        actualExtent.width = std::clamp(actualExtent.width, capabilities.minImageExtent.width,
+                                        capabilities.maxImageExtent.width);
+        actualExtent.height = std::clamp(actualExtent.height, capabilities.minImageExtent.height,
+                                         capabilities.maxImageExtent.height);
 
         return actualExtent;
     }
@@ -1377,7 +1404,7 @@ bool VK_ContextImpl::checkDeviceExtensionSupport(VkPhysicalDevice device)
 
     std::set<std::string> requiredExtensions(deviceExtensions.begin(), deviceExtensions.end());
 
-    for (const auto& extension : availableExtensions) {
+    for (const auto &extension : availableExtensions) {
         requiredExtensions.erase(extension.extensionName);
     }
 
@@ -1395,7 +1422,7 @@ QueueFamilyIndices VK_ContextImpl::findQueueFamilies(VkPhysicalDevice device)
     vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies.data());
 
     int i = 0;
-    for (const auto& queueFamily : queueFamilies) {
+    for (const auto &queueFamily : queueFamilies) {
         if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
             indices.graphicsFamily = i;
         }
@@ -1420,10 +1447,10 @@ QueueFamilyIndices VK_ContextImpl::findQueueFamilies(VkPhysicalDevice device)
 std::vector<const char *> VK_ContextImpl::getRequiredExtensions()
 {
     uint32_t glfwExtensionCount = 0;
-    const char** glfwExtensions;
+    const char **glfwExtensions;
     glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
 
-    std::vector<const char*> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
+    std::vector<const char *> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
 
     if (appConfig.debug) {
         extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
@@ -1439,7 +1466,8 @@ void VK_ContextImpl::initClearColorAndDepthStencil()
 
 void VK_ContextImpl::initColorBlendAttachmentState()
 {
-    vkColorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+    vkColorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT |
+                                            VK_COLOR_COMPONENT_A_BIT;
     vkColorBlendAttachment.blendEnable = VK_FALSE;
 }
 
@@ -1497,7 +1525,8 @@ uint32_t VK_ContextImpl::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFla
     return ~0;
 }
 
-void VK_ContextImpl::transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t mipLevels)
+void VK_ContextImpl::transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout,
+        VkImageLayout newLayout, uint32_t mipLevels)
 {
     VkCommandBuffer commandBuffer = beginSingleTimeCommands();
 
@@ -1609,7 +1638,8 @@ void VK_ContextImpl::endSingleTimeCommands(VkCommandBuffer commandBuffer)
     vkFreeCommandBuffers(device, commandPool, 1, &commandBuffer);
 }
 
-void VK_ContextImpl::generateMipmaps(VkImage image, VkFormat imageFormat, int32_t texWidth, int32_t texHeight, uint32_t mipLevels)
+void VK_ContextImpl::generateMipmaps(VkImage image, VkFormat imageFormat, int32_t texWidth, int32_t texHeight,
+                                     uint32_t mipLevels)
 {
     VkFormatProperties formatProperties;
     vkGetPhysicalDeviceFormatProperties(physicalDevice, imageFormat, &formatProperties);

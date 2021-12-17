@@ -14,13 +14,13 @@ const std::vector<float> vertices = {
     -0.5f, 0.5f, 0.0f, 0.0f, 0.0f, 0.5f, 0.5f
 };
 
-const std::vector<uint16_t> indices = {
+const std::vector<uint32_t> indices = {
     0, 1, 2
 };
 
-VK_Context* context = nullptr;
+VK_Context *context = nullptr;
 
-uint32_t updateUniformBufferData(char* & data, uint32_t size)
+uint32_t updateUniformBufferData(char *&data, uint32_t size)
 {
     static auto startTime = std::chrono::high_resolution_clock::now();
     auto currentTime = std::chrono::high_resolution_clock::now();
@@ -30,7 +30,7 @@ uint32_t updateUniformBufferData(char* & data, uint32_t size)
     return sizeof(model);
 }
 
-uint32_t updateUniformColor(char* & data, uint32_t size)
+uint32_t updateUniformColor(char *&data, uint32_t size)
 {
     glm::vec4 color(0.2f, 0.0f, 0.0f, 0.5f);
     memcpy(data, &color, size);
@@ -65,13 +65,15 @@ int main()
     shaderSet->appendAttributeDescription(0, sizeof (float) * 3);
     shaderSet->appendAttributeDescription(1, sizeof (float) * 4);
 
-    VkDescriptorSetLayoutBinding uniformBinding = VK_ShaderSet::createDescriptorSetLayoutBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT);
+    VkDescriptorSetLayoutBinding uniformBinding = VK_ShaderSet::createDescriptorSetLayoutBinding(0,
+                                                                                                 VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT);
     shaderSet->addDescriptorSetLayoutBinding(uniformBinding);
 
-    uniformBinding = VK_ShaderSet::createDescriptorSetLayoutBinding(1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT);
+    uniformBinding = VK_ShaderSet::createDescriptorSetLayoutBinding(1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                                                                    VK_SHADER_STAGE_FRAGMENT_BIT);
     shaderSet->addDescriptorSetLayoutBinding(uniformBinding);
 
-    if(!shaderSet->isValid()) {
+    if (!shaderSet->isValid()) {
         std::cerr << "invalid shaderSet" << std::endl;
         shaderSet->release();
         context->release();

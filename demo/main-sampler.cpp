@@ -10,19 +10,19 @@
 using namespace std;
 
 const std::vector<float> vertices = {
-    -0.5f, -0.5, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 5.0f, 0.0f,
+    -0.5f, -0.5, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f,
         0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f,
-        0.5f, 0.5f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 5.0f,
-        -0.5f, 0.5f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, 5.0f, 5.0f
+        0.5f, 0.5f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f,
+        -0.5f, 0.5f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, 1.0f, 1.0f
     };
 
-const std::vector<uint16_t> indices = {
+const std::vector<uint32_t> indices = {
     0, 1, 2, 2, 3, 0
 };
 
-VK_Context* context = nullptr;
+VK_Context *context = nullptr;
 
-uint32_t updateUniformBufferData(char* & data, uint32_t size)
+uint32_t updateUniformBufferData(char *&data, uint32_t size)
 {
     glm::mat4 model = glm::identity<glm::mat4>();
     memcpy(data, &model[0][0], size);
@@ -58,10 +58,12 @@ int main()
     shaderSet->appendAttributeDescription(1, sizeof (float) * 4);
     shaderSet->appendAttributeDescription(2, sizeof (float) * 2);
 
-    VkDescriptorSetLayoutBinding uniformBinding = VK_ShaderSet::createDescriptorSetLayoutBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT);
+    VkDescriptorSetLayoutBinding uniformBinding = VK_ShaderSet::createDescriptorSetLayoutBinding(0,
+            VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT);
     shaderSet->addDescriptorSetLayoutBinding(uniformBinding);
 
-    auto samplerBinding = VK_ShaderSet::createDescriptorSetLayoutBinding(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
+    auto samplerBinding = VK_ShaderSet::createDescriptorSetLayoutBinding(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                          VK_SHADER_STAGE_FRAGMENT_BIT);
     auto samplerCreateInfo  = VK_Sampler::createSamplerCreateInfo();
     auto samplerPtr = context->createSampler(samplerCreateInfo);
     VkSampler sampler = samplerPtr->getSampler();
@@ -69,7 +71,7 @@ int main()
 
     shaderSet->addDescriptorSetLayoutBinding(samplerBinding);
 
-    if(!shaderSet->isValid()) {
+    if (!shaderSet->isValid()) {
         std::cerr << "invalid shaderSet" << std::endl;
         shaderSet->release();
         context->release();

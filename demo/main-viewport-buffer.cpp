@@ -15,11 +15,11 @@ const std::vector<VK_Vertex> vertices = {
     {{0.5f, -0.5f, 0.0f}, {1.0f, 1.0f, 1.0f, 0.5f}}
 };
 
-const std::vector<uint16_t> indices = {
+const std::vector<uint32_t> indices = {
     0, 1, 2, 1, 2, 3
 };
 
-VK_Context* context = nullptr;
+VK_Context *context = nullptr;
 
 VK_Viewports viewports;
 VK_Viewports newViewports;
@@ -41,7 +41,7 @@ void onMouseButtonCallback(int button, int action, int mods)
     scissor2.offset.x = size.width * 0.25f;
     newViewports.setScissor(0, scissor2);
 
-    if(action) {
+    if (action) {
         context->setViewports(viewports);
     } else {
         context->setViewports(newViewports);
@@ -81,7 +81,7 @@ int main()
     shaderSet->appendAttributeDescription(0, sizeof (float) * 3);
     shaderSet->appendAttributeDescription(1, sizeof (float) * 4);
 
-    if(!shaderSet->isValid()) {
+    if (!shaderSet->isValid()) {
         std::cerr << "invalid shaderSet" << std::endl;
         shaderSet->release();
         context->release();

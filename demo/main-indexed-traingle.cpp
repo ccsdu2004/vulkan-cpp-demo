@@ -10,16 +10,16 @@ const std::vector<float> vertices = {
     -0.5f, -0.5f, 0.0f, 1.0f, 1.0f, 1.0f, 0.5f
 };
 
-const std::vector<uint16_t> indices = {
+const std::vector<uint32_t> indices = {
     0, 1, 2, 2, 3, 1
 };
 
-VK_Context* context = nullptr;
+VK_Context *context = nullptr;
 
 void onMouseButtonCallback(int button, int action, int mods)
 {
     auto blend = context->getColorBlendAttachmentState();
-    if(button) {
+    if (button) {
         blend.blendEnable = VK_TRUE;
         blend.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
         blend.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
@@ -54,7 +54,7 @@ int main()
     shaderSet->appendAttributeDescription(0, sizeof (float) * 3);
     shaderSet->appendAttributeDescription(1, sizeof (float) * 4);
 
-    if(!shaderSet->isValid()) {
+    if (!shaderSet->isValid()) {
         std::cerr << "invalid shaderSet" << std::endl;
         shaderSet->release();
         context->release();

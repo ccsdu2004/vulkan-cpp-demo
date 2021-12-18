@@ -50,7 +50,7 @@ int main()
     context->setPipelineTessellationStateCreateInfo(tessellationCreateInfo);
 
     auto rasterCreateInfo = context->getPipelineRasterizationStateCreateInfo();
-    rasterCreateInfo.polygonMode = VK_POLYGON_MODE_LINE;
+    rasterCreateInfo.polygonMode = VK_POLYGON_MODE_FILL;
     rasterCreateInfo.lineWidth = 1.0f;
     context->setPipelineRasterizationStateCreateInfo(rasterCreateInfo);
 

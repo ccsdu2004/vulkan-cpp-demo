@@ -1,3 +1,68 @@
+/*#include <iostream>
+#include "VK_Context.h"
+
+using namespace std;
+
+const std::vector<float> vertices1 = {
+    0.0f, -0.5f, 0.0f,// 1.0f, 0.0f, 0.0f, 1.0f,
+    0.5f, 0.5f, 0.0f,// 0.0f, 1.0f, 0.0f, 1.0f,
+    -0.5f, 0.5f, 0.0f,// 0.0f, 0.0f, 1.0f, 1.0f
+};
+
+VK_Context* context = nullptr;
+
+int main()
+{
+    VK_ContextConfig config;
+    config.name = "Geom";
+    config.debug = false;
+
+    context = createVkContext(config);
+    context->createWindow(640, 480, true);
+
+    VkPhysicalDeviceFeatures deviceFeatures{};
+    deviceFeatures.geometryShader = VK_TRUE;
+    context->setLogicalDeviceFeatures(deviceFeatures);
+
+    VK_Context::VK_Config vkConfig;
+    context->initVulkanDevice(vkConfig);
+
+    auto shaderSet = context->createShaderSet();
+    shaderSet->addShader("../shader/geom/shader.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+    shaderSet->addShader("../shader/geom/shader.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+    shaderSet->addShader("../shader/geom/shader.geom.spv", VK_SHADER_STAGE_GEOMETRY_BIT);
+
+    shaderSet->appendAttributeDescription(0, sizeof (float) * 3);
+    //shaderSet->appendAttributeDescription(1, sizeof (float) * 4);
+
+    if(!shaderSet->isValid()) {
+        std::cerr << "invalid shaderSet" << std::endl;
+        shaderSet->release();
+        context->release();
+        return -1;
+    }
+
+    context->initVulkanContext(shaderSet);
+
+    auto rasterCreateInfo = context->getPipelineRasterizationStateCreateInfo();
+    rasterCreateInfo.polygonMode = VK_POLYGON_MODE_LINE;
+
+    context->setPipelineRasterizationStateCreateInfo(rasterCreateInfo);
+
+    context->initPipeline();
+
+    auto buffer = context->createVertexBuffer(vertices1, 3);
+    context->addBuffer(buffer);
+
+    context->createCommandBuffers();
+
+    context->run();
+    context->release();
+
+    return 0;
+}
+*/
+
 #include <iostream>
 #include <cstring>
 #include <chrono>
@@ -25,14 +90,8 @@ uint32_t updateUniformBufferData(char *&data, uint32_t size)
     proj[1][1] *= -1;
 
     model = proj * view * model;
-
     memcpy(data, &model[0][0], size);
-
-    time = sin(time);
-
-    memcpy(data + sizeof(float) * 16, (void *)&time, sizeof(float));
-
-    return 17 * sizeof(float);
+    return 16 * sizeof(float);
 }
 
 void onFrameSizeChanged(int width, int height)
@@ -47,18 +106,23 @@ int main()
 {
     VK_ContextConfig config;
     config.debug = false;
-    config.name = "Model Mesh";
+    config.name = "Model Mesh Gemon";
 
     context = createVkContext(config);
     context->createWindow(480, 480, true);
     context->setOnFrameSizeChanged(onFrameSizeChanged);
 
+    VkPhysicalDeviceFeatures deviceFeatures{};
+    deviceFeatures.geometryShader = VK_TRUE;
+    context->setLogicalDeviceFeatures(deviceFeatures);
+
     VK_Context::VK_Config vkConfig;
     context->initVulkanDevice(vkConfig);
 
     auto shaderSet = context->createShaderSet();
-    shaderSet->addShader("../shader/model-mesh/vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-    shaderSet->addShader("../shader/model-mesh/frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+    shaderSet->addShader("../shader/geom-mesh-geom/shader.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+    shaderSet->addShader("../shader/geom-mesh-geom/shader.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+    shaderSet->addShader("../shader/geom-mesh-geom/shader.geom.spv", VK_SHADER_STAGE_GEOMETRY_BIT);
 
     shaderSet->appendAttributeDescription(0, sizeof (float) * 3);
     shaderSet->appendAttributeDescription(1, sizeof (float) * 2);
@@ -75,7 +139,7 @@ int main()
         return -1;
     }
 
-    auto ubo = context->createUniformBuffer(0, sizeof(float) * 17);
+    auto ubo = context->createUniformBuffer(0, sizeof(float) * 16);
     ubo->setWriteDataCallback(updateUniformBufferData);
     context->addUniformBuffer(ubo);
 
@@ -85,7 +149,7 @@ int main()
     context->initVulkanContext(shaderSet);
 
     auto rasterCreateInfo = context->getPipelineRasterizationStateCreateInfo();
-    rasterCreateInfo.polygonMode = VK_POLYGON_MODE_LINE;
+    rasterCreateInfo.polygonMode = VK_POLYGON_MODE_FILL;
 
     context->setPipelineRasterizationStateCreateInfo(rasterCreateInfo);
 
@@ -97,4 +161,3 @@ int main()
 
     return 0;
 }
-

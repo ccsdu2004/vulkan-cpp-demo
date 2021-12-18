@@ -68,10 +68,13 @@ public:
     VkPipelineColorBlendAttachmentState getColorBlendAttachmentState()override;
     void setColorBlendAttachmentState(const VkPipelineColorBlendAttachmentState &state)override;
 
-    VkPipelineRasterizationStateCreateInfo getPipelineRasterizationStateCreateInfo()override;
+    VkPipelineInputAssemblyStateCreateInfo getInputAssemblyStateCreateInfo()const override;
+    void setInputAssemblyStateCreateInfo(const VkPipelineInputAssemblyStateCreateInfo& createInfo)override;
+
+    VkPipelineRasterizationStateCreateInfo getPipelineRasterizationStateCreateInfo()const override;
     void setPipelineRasterizationStateCreateInfo(const VkPipelineRasterizationStateCreateInfo &createInfo)override;
 
-    VkPipelineDepthStencilStateCreateInfo getPipelineDepthStencilStateCreateInfo()override;
+    VkPipelineDepthStencilStateCreateInfo getPipelineDepthStencilStateCreateInfo()const override;
     void setPipelineDepthStencilStateCreateInfo(const VkPipelineDepthStencilStateCreateInfo &createInfo)override;
 
     VkPipelineTessellationStateCreateInfo createPipelineTessellationStateCreateInfo()override;
@@ -88,7 +91,7 @@ public:
                                   const std::vector<uint32_t> &indices = std::vector<uint32_t>())override;
     VK_Buffer *createVertexBuffer(const std::vector<VK_Vertex> &vertices,
                                   const std::vector<uint32_t> &indices = std::vector<uint32_t>())override;
-    VK_Buffer *createVertexBuffer(const std::string& filename, bool zero = true);
+    VK_Buffer *createVertexBuffer(const std::string& filename, bool zero = true)override;
 
     void removeBuffer(VK_Buffer *buffer)override;
     void addBuffer(VK_Buffer *buffer)override;
@@ -175,6 +178,7 @@ private:
     void endSingleTimeCommands(VkCommandBuffer commandBuffer);
 private:
     void initClearColorAndDepthStencil();
+    void initInputAssemblyStateCreateInfo();
     void initColorBlendAttachmentState();
     void initRasterCreateInfo();
     void initDepthStencilStateCreateInfo();
@@ -244,6 +248,7 @@ private:
 
     VkClearValue vkClearValue;
     VkPipelineColorBlendAttachmentState vkColorBlendAttachment{};
+    VkPipelineInputAssemblyStateCreateInfo inputAssemblyStateCreateInfo{};
     VkPipelineRasterizationStateCreateInfo vkPipelineRasterizationStateCreateInfo{};
     VkPipelineDepthStencilStateCreateInfo vkPipelineDepthStencilStateCreateInfo{};
     std::optional<VkPipelineTessellationStateCreateInfo> vkPipelineTessellationStateCreateInfo{};

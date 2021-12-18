@@ -2,6 +2,8 @@
 #include <fstream>
 #include <cstring>
 #include <set>
+#include <exception>
+#include <cmath>
 #include "VK_ContextImpl.h"
 #include "VK_ShaderSetImpl.h"
 #include "VK_Buffer.h"
@@ -181,7 +183,17 @@ void VK_ContextImpl::setColorBlendAttachmentState(const VkPipelineColorBlendAtta
     }
 }
 
-VkPipelineRasterizationStateCreateInfo VK_ContextImpl::getPipelineRasterizationStateCreateInfo()
+VkPipelineInputAssemblyStateCreateInfo VK_ContextImpl::getInputAssemblyStateCreateInfo() const
+{
+    return inputAssemblyStateCreateInfo;
+}
+
+void VK_ContextImpl::setInputAssemblyStateCreateInfo(const VkPipelineInputAssemblyStateCreateInfo &createInfo)
+{
+    inputAssemblyStateCreateInfo = createInfo;
+}
+
+VkPipelineRasterizationStateCreateInfo VK_ContextImpl::getPipelineRasterizationStateCreateInfo()const
 {
     return vkPipelineRasterizationStateCreateInfo;
 }
@@ -192,7 +204,7 @@ void VK_ContextImpl::setPipelineRasterizationStateCreateInfo(const VkPipelineRas
     vkNeedUpdateSwapChain = true;
 }
 
-VkPipelineDepthStencilStateCreateInfo VK_ContextImpl::getPipelineDepthStencilStateCreateInfo()
+VkPipelineDepthStencilStateCreateInfo VK_ContextImpl::getPipelineDepthStencilStateCreateInfo()const
 {
     return vkPipelineDepthStencilStateCreateInfo;
 }
@@ -464,9 +476,10 @@ bool VK_ContextImpl::createLogicalDevice()
         queueCreateInfos.push_back(queueCreateInfo);
     }
 
-    VkPhysicalDeviceFeatures deviceFeatures{};
-    deviceFeatures.multiViewport = VK_TRUE;
-    deviceFeatures.samplerAnisotropy = VK_TRUE;
+    //VkPhysicalDeviceFeatures deviceFeatures{};
+    //deviceFeatures.multiViewport = VK_TRUE;
+    //deviceFeatures.samplerAnisotropy = VK_TRUE;
+
     VkDeviceCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
 
@@ -474,6 +487,8 @@ bool VK_ContextImpl::createLogicalDevice()
     createInfo.pQueueCreateInfos = queueCreateInfos.data();
 
     createInfo.pEnabledFeatures = &logicalFeatures;
+
+
 
     createInfo.enabledExtensionCount = static_cast<uint32_t>(deviceExtensions.size());
     createInfo.ppEnabledExtensionNames = deviceExtensions.data();
@@ -930,15 +945,7 @@ bool VK_ContextImpl::createGraphicsPipeline()
     vertexInputInfo.pVertexBindingDescriptions = vkShaderSet->getBindingDescription();
     vertexInputInfo.pVertexAttributeDescriptions = vkShaderSet->getAttributeDescriptionData();
 
-    VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
-    inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-
-    if (vkPipelineTessellationStateCreateInfo.has_value()) {
-        inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_PATCH_LIST;
-    } else
-        inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-
-    inputAssembly.primitiveRestartEnable = VK_FALSE;
+    initInputAssemblyStateCreateInfo();
 
     VkPipelineViewportStateCreateInfo viewportState{};
     viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
@@ -981,7 +988,7 @@ bool VK_ContextImpl::createGraphicsPipeline()
     pipelineInfo.stageCount = vkShaderSet->getCreateInfoCount();
     pipelineInfo.pStages = vkShaderSet->getCreateInfoData();
     pipelineInfo.pVertexInputState = &vertexInputInfo;
-    pipelineInfo.pInputAssemblyState = &inputAssembly;
+    pipelineInfo.pInputAssemblyState = &inputAssemblyStateCreateInfo;
     pipelineInfo.pViewportState = &viewportState;
     pipelineInfo.pRasterizationState = &vkPipelineRasterizationStateCreateInfo;
     pipelineInfo.pDepthStencilState = &vkPipelineDepthStencilStateCreateInfo;
@@ -1464,6 +1471,12 @@ void VK_ContextImpl::initClearColorAndDepthStencil()
     vkClearValue = {{{0.0f, 0.0f, 0.0f, 0.0f}}};
 }
 
+void VK_ContextImpl::initInputAssemblyStateCreateInfo()
+{
+    inputAssemblyStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+    inputAssemblyStateCreateInfo.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+    inputAssemblyStateCreateInfo.primitiveRestartEnable = VK_FALSE;
+}
 void VK_ContextImpl::initColorBlendAttachmentState()
 {
     vkColorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT |

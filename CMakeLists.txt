@@ -70,6 +70,8 @@ set(DEMOS
     sampler
     texture
     model-mesh
+    tessellation
+    model-mesh-geom
     )
 
 foreach(var IN LISTS DEMOS)

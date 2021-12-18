@@ -45,10 +45,13 @@ public:
     virtual VkPipelineColorBlendAttachmentState getColorBlendAttachmentState() = 0;
     virtual void setColorBlendAttachmentState(const VkPipelineColorBlendAttachmentState &state) = 0;
 
-    virtual VkPipelineRasterizationStateCreateInfo getPipelineRasterizationStateCreateInfo() = 0;
+    virtual VkPipelineInputAssemblyStateCreateInfo getInputAssemblyStateCreateInfo()const = 0;
+    virtual void setInputAssemblyStateCreateInfo(const VkPipelineInputAssemblyStateCreateInfo& createInfo) = 0;
+
+    virtual VkPipelineRasterizationStateCreateInfo getPipelineRasterizationStateCreateInfo()const = 0;
     virtual void setPipelineRasterizationStateCreateInfo(const VkPipelineRasterizationStateCreateInfo &createInfo) = 0;
 
-    virtual VkPipelineDepthStencilStateCreateInfo getPipelineDepthStencilStateCreateInfo() = 0;
+    virtual VkPipelineDepthStencilStateCreateInfo getPipelineDepthStencilStateCreateInfo()const = 0;
     virtual void setPipelineDepthStencilStateCreateInfo(const VkPipelineDepthStencilStateCreateInfo &createInfo) = 0;
 
     virtual VkPipelineTessellationStateCreateInfo createPipelineTessellationStateCreateInfo() = 0;

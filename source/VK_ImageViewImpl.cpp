@@ -41,8 +41,11 @@ VkImageView VK_ImageViewImpl::getImageView() const
     return textureImageView;
 }
 
-bool VK_ImageViewImpl::create(const VkImageViewCreateInfo& viewCreateInfo)
+bool VK_ImageViewImpl::create(const VkImageViewCreateInfo& viewCreateInfo, uint32_t mipLevels)
 {
+    VkImageViewCreateInfo info = viewCreateInfo;
+    info.subresourceRange.baseMipLevel = mipLevels;
+
     if (vkCreateImageView(device, &viewCreateInfo, nullptr, &textureImageView) != VK_SUCCESS) {
         std::cerr << "failed to create texture image view!" << std::endl;
         return false;
@@ -50,7 +53,7 @@ bool VK_ImageViewImpl::create(const VkImageViewCreateInfo& viewCreateInfo)
 
     imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
     imageInfo.imageView = textureImageView;
-    imageInfo.sampler = 0;
+    imageInfo.sampler = nullptr;
     return true;
 }
 

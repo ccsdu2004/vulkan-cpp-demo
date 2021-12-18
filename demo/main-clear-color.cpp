@@ -23,6 +23,7 @@ int main()
 {
     VK_ContextConfig config;
     config.debug = false;
+    config.name = "Clear Color";
     config.mouseCallback = &onMouseButtonCallback;
 
     context = createVkContext(config);

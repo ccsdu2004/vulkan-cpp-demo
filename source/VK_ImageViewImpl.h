@@ -10,7 +10,7 @@ public:
     VK_ImageViewImpl(VkDevice vkDevice, VK_ContextImpl* vkContext);
     ~VK_ImageViewImpl();
 public:
-    bool create(const VkImageViewCreateInfo& viewCreateInfo);
+    bool create(const VkImageViewCreateInfo& viewCreateInfo, uint32_t mipLevels);
     void setSampler(VkSampler sampler)override;
     void release()override;
 public:

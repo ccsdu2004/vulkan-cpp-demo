@@ -41,7 +41,7 @@ int main()
 {
     VK_ContextConfig config;
     config.debug = false;
-    config.name = "Texure Demo";
+    config.name = "Texure Sampler";
 
     context = createVkContext(config);
     context->createWindow(480, 480, true);

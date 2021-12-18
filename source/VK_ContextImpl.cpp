@@ -361,16 +361,13 @@ void VK_ContextImpl::recreateSwapChain()
     createGraphicsPipeline();
 
     createDepthResources();
-
     createFramebuffers();
 
     for (auto buffer : vkUniformBuffers)
         buffer->initBuffer(swapChainImageViews.size());
 
     createDescriptorPool();
-
     createDescriptorSets();
-
     createCommandBuffers();
 
     imagesInFlight.resize(swapChainImages.size(), VK_NULL_HANDLE);
@@ -477,10 +474,6 @@ bool VK_ContextImpl::createLogicalDevice()
         queueCreateInfos.push_back(queueCreateInfo);
     }
 
-    //VkPhysicalDeviceFeatures deviceFeatures{};
-    //deviceFeatures.multiViewport = VK_TRUE;
-    //deviceFeatures.samplerAnisotropy = VK_TRUE;
-
     VkDeviceCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
 
@@ -488,8 +481,6 @@ bool VK_ContextImpl::createLogicalDevice()
     createInfo.pQueueCreateInfos = queueCreateInfos.data();
 
     createInfo.pEnabledFeatures = &logicalFeatures;
-
-
 
     createInfo.enabledExtensionCount = static_cast<uint32_t>(deviceExtensions.size());
     createInfo.ppEnabledExtensionNames = deviceExtensions.data();
@@ -571,7 +562,7 @@ bool VK_ContextImpl::createSwapChainImageViews()
 
         VK_ImageViewImpl *view = new VK_ImageViewImpl(device, this);
         view->setRemoveFromContainerWhenRelease(false);
-        if (!view->create(viewCreateInfo)) {
+        if (!view->create(viewCreateInfo, 1)) {
             std::cerr << "failed to create image views" << std::endl;
             return false;
         }
@@ -841,10 +832,10 @@ void VK_ContextImpl::removeSampler(VK_Sampler *sampler)
     vkSamplerList.remove(sampler);
 }
 
-VK_ImageView *VK_ContextImpl::createImageView(const VkImageViewCreateInfo &viewCreateInfo)
+VK_ImageView *VK_ContextImpl::createImageView(const VkImageViewCreateInfo &viewCreateInfo, uint32_t mipLevels)
 {
     auto imageView = new VK_ImageViewImpl(device, this);
-    if (!imageView->create(viewCreateInfo)) {
+    if (!imageView->create(viewCreateInfo, mipLevels)) {
         delete imageView;
         return nullptr;
     }
@@ -946,7 +937,6 @@ bool VK_ContextImpl::createGraphicsPipeline()
     vertexInputInfo.pVertexBindingDescriptions = vkShaderSet->getBindingDescription();
     vertexInputInfo.pVertexAttributeDescriptions = vkShaderSet->getAttributeDescriptionData();
 
-
     VkPipelineViewportStateCreateInfo viewportState{};
     viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
     viewportState.viewportCount = vkViewports.getViewportCount();
@@ -988,6 +978,7 @@ bool VK_ContextImpl::createGraphicsPipeline()
     pipelineInfo.stageCount = vkShaderSet->getCreateInfoCount();
     pipelineInfo.pStages = vkShaderSet->getCreateInfoData();
     pipelineInfo.pVertexInputState = &vertexInputInfo;
+
     pipelineInfo.pInputAssemblyState = &inputAssemblyStateCreateInfo;
     pipelineInfo.pViewportState = &viewportState;
     pipelineInfo.pRasterizationState = &vkPipelineRasterizationStateCreateInfo;
@@ -1036,7 +1027,7 @@ void VK_ContextImpl::createFramebuffers()
         framebufferInfo.layers = 1;
 
         if (vkCreateFramebuffer(device, &framebufferInfo, nullptr, &swapChainFramebuffers[i]) != VK_SUCCESS) {
-            throw std::runtime_error("failed to create framebuffer!");
+            std::cerr << "failed to create framebuffer!" << std::endl;
         }
     }
 }
@@ -1071,7 +1062,7 @@ void VK_ContextImpl::createDepthResources()
     auto createInfo = VK_ImageView::createImageViewCreateInfo(vkDepthImage->getImage(), depthFormat);
     createInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
     vkDepthImageView = new VK_ImageViewImpl(device, this);
-    vkDepthImageView->create(createInfo);
+    vkDepthImageView->create(createInfo, 1);
 }
 
 VkFormat VK_ContextImpl::findSupportedFormat(const std::vector<VkFormat> &candidates, VkImageTiling tiling,
@@ -1180,7 +1171,7 @@ bool VK_ContextImpl::createCommandBuffers()
         beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 
         if (vkBeginCommandBuffer(commandBuffers[i], &beginInfo) != VK_SUCCESS) {
-            throw std::runtime_error("failed to begin recording command buffer!");
+            std::cerr << "failed to begin recording command buffer!" << std::endl;
         }
 
         VkRenderPassBeginInfo renderPassInfo{};
@@ -1256,7 +1247,7 @@ void VK_ContextImpl::drawFrame()
         recreateSwapChain();
         return;
     } else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
-        throw std::runtime_error("failed to acquire swap chain image!");
+        std::cerr << "failed to acquire swap chain image!" << std::endl;
     }
 
     for (auto buffer : vkUniformBuffers)
@@ -1286,7 +1277,7 @@ void VK_ContextImpl::drawFrame()
     vkResetFences(device, 1, &inFlightFences[currentFrame]);
 
     if (vkQueueSubmit(graphicsQueue, 1, &submitInfo, inFlightFences[currentFrame]) != VK_SUCCESS) {
-        throw std::runtime_error("failed to submit draw command buffer!");
+        std::cerr << "failed to submit draw command buffer!" << std::endl;
     }
 
     VkPresentInfoKHR presentInfo{};
@@ -1477,6 +1468,7 @@ void VK_ContextImpl::initInputAssemblyStateCreateInfo()
     inputAssemblyStateCreateInfo.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
     inputAssemblyStateCreateInfo.primitiveRestartEnable = VK_FALSE;
 }
+
 void VK_ContextImpl::initColorBlendAttachmentState()
 {
     vkColorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT |

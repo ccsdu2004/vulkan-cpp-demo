@@ -10,10 +10,10 @@
 using namespace std;
 
 const std::vector<float> vertices = {
-    -0.5f, -0.5, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 5.0f, 0.0f,
+    -0.5f, -0.5, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.05f, 0.0f,
         0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f,
-        0.5f, 0.5f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 5.0f,
-        -0.5f, 0.5f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, 5.0f, 5.0f
+        0.5f, 0.5f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 1.5f,
+        -0.5f, 0.5f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, 1.5f, 1.5f
     };
 
 const std::vector<uint32_t> indices = {
@@ -59,11 +59,11 @@ int main()
     shaderSet->appendAttributeDescription(2, sizeof (float) * 2);
 
     VkDescriptorSetLayoutBinding uniformBinding = VK_ShaderSet::createDescriptorSetLayoutBinding(0,
-                                                                                                 VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT);
+            VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT);
     shaderSet->addDescriptorSetLayoutBinding(uniformBinding);
 
     auto samplerBinding = VK_ShaderSet::createDescriptorSetLayoutBinding(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                                                                         VK_SHADER_STAGE_FRAGMENT_BIT);
+                          VK_SHADER_STAGE_FRAGMENT_BIT);
     auto samplerCreateInfo  = VK_Sampler::createSamplerCreateInfo();
     auto samplerPtr = context->createSampler(samplerCreateInfo);
     VkSampler sampler = samplerPtr->getSampler();

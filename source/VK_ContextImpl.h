@@ -102,7 +102,7 @@ public:
     VK_Sampler *createSampler(const VkSamplerCreateInfo &samplerInfo)override;
     void removeSampler(VK_Sampler *sampler);
 
-    VK_ImageView *createImageView(const VkImageViewCreateInfo &viewCreateInfo)override;
+    VK_ImageView *createImageView(const VkImageViewCreateInfo &viewCreateInfo, uint32_t mipLevels = 1)override;
     void addImageView(VK_ImageView *imageView)override;
     void removeImageView(VK_ImageView *imageView);
 

@@ -73,7 +73,7 @@ public:
 
     virtual VK_Image *createImage(const std::string &image) = 0;
     virtual VK_Sampler *createSampler(const VkSamplerCreateInfo &samplerInfo) = 0;
-    virtual VK_ImageView *createImageView(const VkImageViewCreateInfo &viewCreateInfo) = 0;
+    virtual VK_ImageView *createImageView(const VkImageViewCreateInfo &viewCreateInfo, uint32_t mipLevels = 1) = 0;
     virtual void addImageView(VK_ImageView *imageView) = 0;
 
     virtual VK_UniformBuffer *createUniformBuffer(uint32_t binding, uint32_t bufferSize) = 0;

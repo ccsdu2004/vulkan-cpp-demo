@@ -102,6 +102,7 @@ bool VK_ContextImpl::initVulkanContext(VK_ShaderSet *shaderSet)
     initColorBlendAttachmentState();
     initRasterCreateInfo();
     initDepthStencilStateCreateInfo();
+    initInputAssemblyStateCreateInfo();
     initViewport();
     return true;
 }
@@ -945,7 +946,6 @@ bool VK_ContextImpl::createGraphicsPipeline()
     vertexInputInfo.pVertexBindingDescriptions = vkShaderSet->getBindingDescription();
     vertexInputInfo.pVertexAttributeDescriptions = vkShaderSet->getAttributeDescriptionData();
 
-    initInputAssemblyStateCreateInfo();
 
     VkPipelineViewportStateCreateInfo viewportState{};
     viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;

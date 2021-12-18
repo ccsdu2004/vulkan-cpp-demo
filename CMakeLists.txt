@@ -59,19 +59,21 @@ add_library(
 )
 
 set(DEMOS
+    hello-triangle
+    indexed-traingle
+    viewport-buffer
+    blend-color
+
     cube-texture
     cube-color
-    hello-triangle
     clear-color
-    indexed-traingle
     uniform-buffer
     uniform-buffer2
-    viewport-buffer
     sampler
     texture
     model-mesh
-    tessellation
     model-mesh-geom
+    model-mesh-tess
     )
 
 foreach(var IN LISTS DEMOS)

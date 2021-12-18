@@ -26,7 +26,10 @@ uint32_t updateUniformBufferData(char *&data, uint32_t size)
 
     model = proj * view * model;
     memcpy(data, &model[0][0], size);
-    return 16 * sizeof(float);
+
+    time = sin(time);
+    memcpy(data + sizeof(float) * 16, (void *)&time, sizeof(float));
+    return 17 * sizeof(float);
 }
 
 void onFrameSizeChanged(int width, int height)
@@ -40,24 +43,26 @@ void onFrameSizeChanged(int width, int height)
 int main()
 {
     VK_ContextConfig config;
-    config.debug = false;
-    config.name = "Model Mesh Gemon";
+    config.debug = true;
+    config.name = "Model Mesh Tess";
 
     context = createVkContext(config);
     context->createWindow(480, 480, true);
     context->setOnFrameSizeChanged(onFrameSizeChanged);
 
     VkPhysicalDeviceFeatures deviceFeatures{};
-    deviceFeatures.geometryShader = VK_TRUE;
+    deviceFeatures.tessellationShader = VK_TRUE;
+    deviceFeatures.fillModeNonSolid = VK_TRUE;
     context->setLogicalDeviceFeatures(deviceFeatures);
 
     VK_Context::VK_Config vkConfig;
     context->initVulkanDevice(vkConfig);
 
     auto shaderSet = context->createShaderSet();
-    shaderSet->addShader("../shader/geom-mesh-geom/shader.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-    shaderSet->addShader("../shader/geom-mesh-geom/shader.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
-    shaderSet->addShader("../shader/geom-mesh-geom/shader.geom.spv", VK_SHADER_STAGE_GEOMETRY_BIT);
+    shaderSet->addShader("../shader/geom-mesh-tess/vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+    shaderSet->addShader("../shader/geom-mesh-tess/frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+    shaderSet->addShader("../shader/geom-mesh-tess/tesc.spv", VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT);
+    shaderSet->addShader("../shader/geom-mesh-tess/tese.spv", VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT);
 
     shaderSet->appendAttributeDescription(0, sizeof (float) * 3);
     shaderSet->appendAttributeDescription(1, sizeof (float) * 2);
@@ -74,7 +79,7 @@ int main()
         return -1;
     }
 
-    auto ubo = context->createUniformBuffer(0, sizeof(float) * 16);
+    auto ubo = context->createUniformBuffer(0, sizeof(float) * 17);
     ubo->setWriteDataCallback(updateUniformBufferData);
     context->addUniformBuffer(ubo);
 
@@ -83,10 +88,17 @@ int main()
 
     context->initVulkanContext(shaderSet);
 
-    auto rasterCreateInfo = context->getPipelineRasterizationStateCreateInfo();
-    rasterCreateInfo.polygonMode = VK_POLYGON_MODE_FILL;
+    auto tessellationCreateInfo = context->createPipelineTessellationStateCreateInfo();
+    tessellationCreateInfo.patchControlPoints = 3;
+    context->setPipelineTessellationStateCreateInfo(tessellationCreateInfo);
 
+    auto rasterCreateInfo = context->getPipelineRasterizationStateCreateInfo();
+    rasterCreateInfo.polygonMode = VK_POLYGON_MODE_LINE;
     context->setPipelineRasterizationStateCreateInfo(rasterCreateInfo);
+
+    auto inputAssmly = context->getInputAssemblyStateCreateInfo();
+    inputAssmly.topology = VK_PRIMITIVE_TOPOLOGY_PATCH_LIST;
+    context->setInputAssemblyStateCreateInfo(inputAssmly);
 
     context->initPipeline();
     context->createCommandBuffers();

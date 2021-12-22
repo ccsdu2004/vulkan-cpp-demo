@@ -45,8 +45,8 @@ bool VK_ImageImpl::load(const std::string &filename)
     context->transitionImageLayout(textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, mipLevels);
     context->copyBufferToImage(stagingBuffer, textureImage, static_cast<uint32_t>(width), static_cast<uint32_t>(height));
 
-    vkDestroyBuffer(device, stagingBuffer, nullptr);
-    vkFreeMemory(device, stagingBufferMemory, nullptr);
+    vkDestroyBuffer(device, stagingBuffer, context->getAllocation());
+    vkFreeMemory(device, stagingBufferMemory, context->getAllocation());
     context->generateMipmaps(textureImage, VK_FORMAT_R8G8B8A8_UNORM, width, height, mipLevels);
 
     return true;
@@ -78,9 +78,9 @@ void VK_ImageImpl::release()
         context->onReleaseImage(this);
 
     if(textureImage)
-        vkDestroyImage(device, textureImage, nullptr);
+        vkDestroyImage(device, textureImage, context->getAllocation());
     if(textureImageMemory)
-        vkFreeMemory(device, textureImageMemory, nullptr);
+        vkFreeMemory(device, textureImageMemory, context->getAllocation());
     delete this;
 }
 
@@ -103,7 +103,7 @@ bool VK_ImageImpl::createImage(uint32_t width, uint32_t height, VkFormat format,
     createInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
     createInfo.pNext = nullptr;
 
-    if (vkCreateImage(device, &createInfo, nullptr, &textureImage) != VK_SUCCESS) {
+    if (vkCreateImage(device, &createInfo, context->getAllocation(), &textureImage) != VK_SUCCESS) {
         std::cerr << "failed to create image!" << std::endl;
         return true;
     }
@@ -116,7 +116,7 @@ bool VK_ImageImpl::createImage(uint32_t width, uint32_t height, VkFormat format,
     allocInfo.allocationSize = memRequirements.size;
     allocInfo.memoryTypeIndex = context->findMemoryType(memRequirements.memoryTypeBits, properties);
 
-    if (vkAllocateMemory(device, &allocInfo, nullptr, &textureImageMemory) != VK_SUCCESS) {
+    if (vkAllocateMemory(device, &allocInfo, context->getAllocation(), &textureImageMemory) != VK_SUCCESS) {
         std::cerr << "failed to allocate image memory!" << std::endl;
         return false;
     }

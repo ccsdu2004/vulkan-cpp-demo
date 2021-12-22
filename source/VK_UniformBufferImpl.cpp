@@ -87,11 +87,11 @@ void VK_UniformBufferImpl::update(uint32_t index)
 void VK_UniformBufferImpl::clearBuffer()
 {
     for(size_t i = 0; i < uniformBuffers.size(); i++) {
-        vkDestroyBuffer(device, uniformBuffers[i], nullptr);
+        vkDestroyBuffer(device, uniformBuffers[i], context->getAllocation());
         uniformBuffers[i] = VK_NULL_HANDLE;
     }
     for(size_t i = 0; i < uniformBuffers.size(); i++) {
-        vkFreeMemory(device, uniformBuffersMemory[i], nullptr);
+        vkFreeMemory(device, uniformBuffersMemory[i], context->getAllocation());
         uniformBuffersMemory[i] = 0;
     }
 }

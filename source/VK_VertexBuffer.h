@@ -37,8 +37,8 @@ private:
                               VK_BUFFER_USAGE_INDEX_BUFFER_BIT), VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, inputBuffer, deviceMemory);
         context->copyBuffer(stagingBuffer, inputBuffer, bufferSize);
 
-        vkDestroyBuffer(device, stagingBuffer, nullptr);
-        vkFreeMemory(device, stagingBufferMemory, nullptr);
+        vkDestroyBuffer(device, stagingBuffer, getContext()->getAllocation());
+        vkFreeMemory(device, stagingBufferMemory, getContext()->getAllocation());
     }
 private:
     int count = 0;

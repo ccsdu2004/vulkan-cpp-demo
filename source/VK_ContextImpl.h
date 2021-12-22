@@ -14,6 +14,7 @@
 #include "VK_ImageImpl.h"
 #include "VK_ImageViewImpl.h"
 #include "VK_ValidationLayer.h"
+#include "VK_Allocator.h"
 
 struct QueueFamilyIndices {
     std::optional<uint32_t> graphicsFamily;
@@ -43,6 +44,7 @@ public:
     VK_ContextImpl(const VK_ContextConfig &config);
     ~VK_ContextImpl();
 public:
+    VkAllocationCallbacks *getAllocation()override;
     void release()override;
 public:
     bool createWindow(int width, int height, bool resize)override;
@@ -69,17 +71,21 @@ public:
     void setColorBlendAttachmentState(const VkPipelineColorBlendAttachmentState &state)override;
 
     VkPipelineInputAssemblyStateCreateInfo getInputAssemblyStateCreateInfo()const override;
-    void setInputAssemblyStateCreateInfo(const VkPipelineInputAssemblyStateCreateInfo& createInfo)override;
+    void setInputAssemblyStateCreateInfo(const VkPipelineInputAssemblyStateCreateInfo &createInfo)
+    override;
 
     VkPipelineRasterizationStateCreateInfo getPipelineRasterizationStateCreateInfo()const override;
-    void setPipelineRasterizationStateCreateInfo(const VkPipelineRasterizationStateCreateInfo &createInfo)override;
+    void setPipelineRasterizationStateCreateInfo(const VkPipelineRasterizationStateCreateInfo
+            &createInfo)override;
 
     VkPipelineDepthStencilStateCreateInfo getPipelineDepthStencilStateCreateInfo()const override;
-    void setPipelineDepthStencilStateCreateInfo(const VkPipelineDepthStencilStateCreateInfo &createInfo)override;
+    void setPipelineDepthStencilStateCreateInfo(const VkPipelineDepthStencilStateCreateInfo &createInfo)
+    override;
 
     VkPipelineTessellationStateCreateInfo createPipelineTessellationStateCreateInfo()override;
     VkPipelineTessellationStateCreateInfo getVkPipelineTessellationStateCreateInfo()override;
-    void setPipelineTessellationStateCreateInfo(const VkPipelineTessellationStateCreateInfo &createInfo)override;
+    void setPipelineTessellationStateCreateInfo(const VkPipelineTessellationStateCreateInfo &createInfo)
+    override;
 public:
     void setDynamicState(VkDynamicState dynamicState)override;
     VkPipelineDynamicStateCreateInfo createDynamicStateCreateInfo(
@@ -91,7 +97,7 @@ public:
                                   const std::vector<uint32_t> &indices = std::vector<uint32_t>())override;
     VK_Buffer *createVertexBuffer(const std::vector<VK_Vertex> &vertices,
                                   const std::vector<uint32_t> &indices = std::vector<uint32_t>())override;
-    VK_Buffer *createVertexBuffer(const std::string& filename, bool zero = true)override;
+    VK_Buffer *createVertexBuffer(const std::string &filename, bool zero = true)override;
 
     void removeBuffer(VK_Buffer *buffer)override;
     void addBuffer(VK_Buffer *buffer)override;
@@ -102,7 +108,8 @@ public:
     VK_Sampler *createSampler(const VkSamplerCreateInfo &samplerInfo)override;
     void removeSampler(VK_Sampler *sampler);
 
-    VK_ImageView *createImageView(const VkImageViewCreateInfo &viewCreateInfo, uint32_t mipLevels = 1)override;
+    VK_ImageView *createImageView(const VkImageViewCreateInfo &viewCreateInfo,
+                                  uint32_t mipLevels = 1)override;
     void addImageView(VK_ImageView *imageView)override;
     void removeImageView(VK_ImageView *imageView);
 
@@ -110,16 +117,19 @@ public:
     void addUniformBuffer(VK_UniformBuffer *uniformBuffer)override;
     void removeUniformBuffer(VK_UniformBuffer *uniforBuffer);
 public:
-    bool createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer &buffer,
+    bool createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties,
+                      VkBuffer &buffer,
                       VkDeviceMemory &bufferMemory)override;
     void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size)override;
     uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties)override;
 
-    void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout,
+    void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout,
+                               VkImageLayout newLayout,
                                uint32_t mipLevels = 1);
     void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height);
 
-    void generateMipmaps(VkImage image, VkFormat format, int32_t width, int32_t height, uint32_t mipLevels);
+    void generateMipmaps(VkImage image, VkFormat format, int32_t width, int32_t height,
+                         uint32_t mipLevels);
 private:
     void recreateSwapChain();
 
@@ -186,6 +196,8 @@ private:
 private:
     VK_ContextConfig appConfig;
     VK_Config vkConfig;
+
+    VK_Allocator *vkAllocator = nullptr;
 
     GLFWwindow *window = nullptr;
     std::function<void(int, int)> windowSizeChangedCallback;

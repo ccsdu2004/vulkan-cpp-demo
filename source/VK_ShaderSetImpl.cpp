@@ -1,12 +1,15 @@
 #include <vector>
 #include <numeric>
 #include <iostream>
+#include "VK_Context.h"
 #include "VK_ShaderSetImpl.h"
 #include "VK_Util.h"
 
-VK_ShaderSetImpl::VK_ShaderSetImpl(VkDevice device):
+VK_ShaderSetImpl::VK_ShaderSetImpl(VK_Context *vkContext, VkDevice device):
+    context(vkContext),
     vkDevice(device)
 {
+
 }
 
 VK_ShaderSetImpl::~VK_ShaderSetImpl()
@@ -16,7 +19,7 @@ VK_ShaderSetImpl::~VK_ShaderSetImpl()
 void VK_ShaderSetImpl::release()
 {
     for(auto itr = shaderStageCreateInfos.begin(); itr != shaderStageCreateInfos.end(); itr++)
-        vkDestroyShaderModule(vkDevice, itr->module, nullptr);
+        vkDestroyShaderModule(vkDevice, itr->module, context->getAllocation());
     delete this;
 }
 
@@ -174,7 +177,7 @@ VkShaderModule VK_ShaderSetImpl::createShaderModule(const std::string &spvFile)
     createInfo.codeSize = code.size();
     createInfo.pCode = reinterpret_cast<const uint32_t *>(code.data());
 
-    if (vkCreateShaderModule(vkDevice, &createInfo, nullptr, &shaderModule) != VK_SUCCESS)
+    if (vkCreateShaderModule(vkDevice, &createInfo, context->getAllocation(), &shaderModule) != VK_SUCCESS)
         std::cerr << "failed to create shader module!" << std::endl;
 
     return shaderModule;

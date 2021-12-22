@@ -8,7 +8,7 @@ class VK_ShaderSetImpl : public VK_ShaderSet
 {
 public:
     VK_ShaderSetImpl() = delete;
-    VK_ShaderSetImpl(VkDevice device);
+    VK_ShaderSetImpl(VK_Context* vkContext, VkDevice device);
     ~VK_ShaderSetImpl();
 public:
     void release()override;
@@ -34,6 +34,7 @@ public:
 private:
     VkShaderModule createShaderModule(const std::string &spvFile);
 private:
+    VK_Context* context = nullptr;
     VkDevice vkDevice = nullptr;
     std::vector<int> sizeTable;
     VkVertexInputBindingDescription bindingDescription{};

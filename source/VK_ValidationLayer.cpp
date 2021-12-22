@@ -27,8 +27,9 @@ VkBool32 VK_ValidationLayer::debugCallback(VkDebugUtilsMessageSeverityFlagBitsEX
     return VK_FALSE;
 }
 
-VK_ValidationLayer::VK_ValidationLayer(bool debug):
-    vkDebug(debug)
+VK_ValidationLayer::VK_ValidationLayer(VK_Context *vkContext, bool debug):
+    vkDebug(debug),
+    context(vkContext)
 {
 }
 
@@ -93,7 +94,7 @@ bool VK_ValidationLayer::appendValidationLayerSupport()
 void VK_ValidationLayer::cleanup(VkInstance instance)
 {
     if(vkDebug) {
-        destroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
+        destroyDebugUtilsMessengerEXT(instance, debugMessenger, context->getAllocation());
         for(auto str : validationLayers)
             delete []str;
     }
@@ -127,7 +128,7 @@ bool VK_ValidationLayer::setupDebugMessenger(VkInstance instance)
     VkDebugUtilsMessengerCreateInfoEXT createInfo;
     populateDebugMessengerCreateInfo(createInfo);
 
-    if (createDebugUtilsMessengerEXT(instance, &createInfo, nullptr, &debugMessenger) != VK_SUCCESS) {
+    if (createDebugUtilsMessengerEXT(instance, &createInfo, context->getAllocation(), &debugMessenger) != VK_SUCCESS) {
         std::cout << "failed to set up debug messenger!" << std::endl;
         return false;
     }

@@ -40,7 +40,7 @@ void VK_SamplerImpl::release()
         context->removeSampler(this);
 
     if(textureSampler)
-        vkDestroySampler(device, textureSampler, nullptr);
+        vkDestroySampler(device, textureSampler, context->getAllocation());
 
     delete this;
 }
@@ -52,7 +52,7 @@ VkSampler VK_SamplerImpl::getSampler() const
 
 bool VK_SamplerImpl::create(const VkSamplerCreateInfo& samplerInfo)
 {
-    if (vkCreateSampler(device, &samplerInfo, nullptr, &textureSampler) != VK_SUCCESS) {
+    if (vkCreateSampler(device, &samplerInfo, context->getAllocation(), &textureSampler) != VK_SUCCESS) {
         std::cerr << "failed to create texture sampler!" << std::endl;
         return false;
     }

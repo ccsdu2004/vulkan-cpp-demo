@@ -12,13 +12,18 @@ VK_Buffer::~VK_Buffer()
 {
 }
 
+VK_Context *VK_Buffer::getContext() const
+{
+    return context;
+}
+
 void VK_Buffer::release()
 {
     if(device) {
         if(buffer)
-            vkDestroyBuffer(device, buffer, nullptr);
+            vkDestroyBuffer(device, buffer, context->getAllocation());
         if(bufferMemory)
-            vkFreeMemory(device, bufferMemory, nullptr);
+            vkFreeMemory(device, bufferMemory, context->getAllocation());
     }
 
     context->removeBuffer(this);

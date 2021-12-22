@@ -16,9 +16,9 @@ void VK_VertexBuffer::release()
 {
     if (device) {
         if (indexedBuffer)
-            vkDestroyBuffer(device, indexedBuffer, nullptr);
+            vkDestroyBuffer(device, indexedBuffer, getContext()->getAllocation());
         if (indexedBufferMemory)
-            vkFreeMemory(device, indexedBufferMemory, nullptr);
+            vkFreeMemory(device, indexedBufferMemory, getContext()->getAllocation());
     }
 
     VK_Buffer::release();

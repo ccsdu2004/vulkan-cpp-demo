@@ -14,6 +14,7 @@ public:
     VK_Buffer(VK_Context* context, VkDevice vkDevice);
     virtual ~VK_Buffer();
 public:
+    VK_Context* getContext()const;
     virtual void release() override;
 public:
     virtual void render(VkCommandBuffer command) = 0;

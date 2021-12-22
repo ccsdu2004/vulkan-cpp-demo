@@ -1,50 +1,58 @@
 #include <cassert>
+#include <cstdlib>
+#include <cstring>
 #include <malloc.h>
 #include "VK_Allocator.h"
 
-void* VK_Allocator::Allocation(size_t size, size_t alignment, VkSystemAllocationScope allocationScope)
+void *allocationFunction(void *userData, size_t size, size_t alignment,
+                         VkSystemAllocationScope allocationScope)
 {
-    auto ret = _aligned_malloc(size, alignment);
-    assert(ret == nullptr);
-    return ret;
+    void *ptr = malloc(size);
+    memset(ptr, 0, size);
+    return ptr;
 }
 
-void* VKAPI_CALL VK_Allocator::Allocation(
-    void*                   pUserData,
-    size_t                  size,
-    size_t                  alignment,
-    VkSystemAllocationScope allocationScope)
+void freeFunction(void *userData, void *memory)
 {
-    return static_cast<VK_Allocator*>(pUserData)->Allocation(size, alignment, allocationScope);
+    free(memory);
 }
 
-void* VK_Allocator::ReAllocation(
-    void*                   pOriginal,
-    size_t                  size,
-    size_t                  alignment,
-    VkSystemAllocationScope allocationScope)
+void *reallocationFunction(void *userData, void *original, size_t size, size_t alignment,
+                           VkSystemAllocationScope allocationScope)
 {
-    (void)allocationScope;
-    return _aligned_realloc(pOriginal, size, alignment);
+    return realloc(original, size);
 }
 
-void* VKAPI_CALL VK_Allocator::ReAllocation(
-    void*                   pUserData,
-    void*                   pOriginal,
-    size_t                  size,
-    size_t                  alignment,
-    VkSystemAllocationScope allocationScope)
+void internalAllocationNotification(void *userData, size_t size,
+                                    VkInternalAllocationType allocationType, VkSystemAllocationScope allocationScope)
 {
-    return static_cast<VK_Allocator*>(pUserData)->ReAllocation(
-               pOriginal, size, alignment, allocationScope);
 }
 
-void VK_Allocator::Free(void *pMemory)
+void internalFreeNotification(void *userData, size_t size, VkInternalAllocationType allocationType, VkSystemAllocationScope allocationScope)
 {
-    _aligned_free(pMemory);
 }
 
-void VKAPI_CALL VK_Allocator::Free(void* pUserData, void* pMemory)
+VkAllocationCallbacks *VK_Allocator::getAllocator()
 {
-    return static_cast<VK_Allocator*>(pUserData)->Free(pMemory);
+    if (!allocationCallback)
+        allocationCallback = new VkAllocationCallbacks();
+
+    allocationCallback->pUserData = (void *)this;
+    allocationCallback->pfnAllocation = (PFN_vkAllocationFunction)(&allocationFunction);
+    allocationCallback->pfnReallocation = (PFN_vkReallocationFunction)(&reallocationFunction);
+    allocationCallback->pfnFree = (PFN_vkFreeFunction)&freeFunction;
+    allocationCallback->pfnInternalAllocation = (PFN_vkInternalAllocationNotification)
+            &internalAllocationNotification;
+    allocationCallback->pfnInternalFree = (PFN_vkInternalFreeNotification)&internalFreeNotification;
+    return allocationCallback;
+}
+
+VK_Allocator::VK_Allocator()
+{
+}
+
+VK_Allocator::~VK_Allocator()
+{
+    if (allocationCallback)
+        delete allocationCallback;
 }

@@ -13,7 +13,7 @@ public:
     ~VK_ImageImpl();
 public:
     bool load(const std::string& filename);
-    bool createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties);
+    bool createImage(uint32_t width, uint32_t height, VkSampleCountFlagBits sample, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties);
 
     VkImage getImage()const override;
     int getWidth()const override;

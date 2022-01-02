@@ -1,12 +1,6 @@
 cmake_minimum_required(VERSION 3.5)
 
 project(vulkan-demo)
-
-set(GLFW_ROOT "D:\\glfw-3.3.5.bin.WIN64")
-include_directories("C:\\VulkanSDK\\1.2.189.2\\Include")
-LINK_DIRECTORIES("C:\\VulkanSDK\\1.2.189.2\\Lib")
-LINK_DIRECTORIES("D:\\glfw-3.3.5.bin.WIN64\\lib-mingw-w64")
-
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
@@ -53,6 +47,7 @@ add_library(
      source/VK_ValidationLayer.cpp
      source/VK_ShaderSet.cpp
      source/VK_Util.cpp
+     source/VK_Allocator.cpp
      source/VK_ObjLoader.cpp
      source/VK_ObjLoader.h
      source/tiny_obj_loader.cc
@@ -71,6 +66,7 @@ set(DEMOS
     uniform-buffer2
     sampler
     texture
+    model
     model-mesh
     model-mesh-geom
     model-mesh-tess

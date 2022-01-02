@@ -13,6 +13,8 @@ VK_Context* context = nullptr;
 
 void onMouseButtonCallback(int button, int action, int mods)
 {
+    (void)button;
+    (void)mods;
     if(action)
         context->setClearColor(0, 1, 0, 1);
     else

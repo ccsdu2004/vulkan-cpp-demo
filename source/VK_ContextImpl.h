@@ -154,6 +154,7 @@ private:
 
     bool createCommandPool();
 
+    void createColorResources();
     void createDepthResources();
 
     VkFormat findSupportedFormat(const std::vector<VkFormat> &candidates, VkImageTiling tiling,
@@ -186,6 +187,8 @@ private:
 
     VkCommandBuffer beginSingleTimeCommands();
     void endSingleTimeCommands(VkCommandBuffer commandBuffer);
+
+    VkSampleCountFlagBits getMaxUsableSampleCount();
 private:
     void initClearColorAndDepthStencil();
     void initInputAssemblyStateCreateInfo();
@@ -210,6 +213,7 @@ private:
     VkPhysicalDeviceFeatures deviceFeatures{};
     VkPhysicalDeviceFeatures logicalFeatures{};
     VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
+    VkSampleCountFlagBits msaaSamples = VK_SAMPLE_COUNT_1_BIT;
     VkPhysicalDeviceProperties deviceProperties;
     VkDevice device = nullptr;
 
@@ -235,6 +239,9 @@ private:
 
     VkCommandPool commandPool = 0;
     std::vector<VkCommandBuffer> commandBuffers;
+
+    VK_ImageImpl *vkColorImage = nullptr;
+    VK_ImageViewImpl *vkColorImageView = nullptr;
 
     VK_ImageImpl *vkDepthImage = nullptr;
     VK_ImageViewImpl *vkDepthImageView = nullptr;

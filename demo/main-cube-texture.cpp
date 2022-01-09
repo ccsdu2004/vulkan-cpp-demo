@@ -7,6 +7,7 @@
 #include "VK_Context.h"
 #include "VK_Image.h"
 #include "VK_Texture.h"
+#include "VK_DynamicState.h"
 
 using namespace std;
 
@@ -85,10 +86,10 @@ int main()
 {
     VK_ContextConfig config;
     config.debug = false;
-    config.name = "Cube Demo";
+    config.name = "Cube Texure";
 
     context = createVkContext(config);
-    context->createWindow(280, 280, true);
+    context->createWindow(680, 680, true);
     context->setOnFrameSizeChanged(onFrameSizeChanged);
 
     VK_Context::VK_Config vkConfig;
@@ -141,7 +142,17 @@ int main()
     rasterCreateInfo.cullMode = VK_CULL_MODE_NONE;
     context->setPipelineRasterizationStateCreateInfo(rasterCreateInfo);
 
+    context->addDynamicState(VK_DYNAMIC_STATE_VIEWPORT);
     context->initPipeline();
+
+    VkViewport vp;
+    vp.x = 100;
+    vp.y = 100;
+    vp.minDepth = 0.0f;
+    vp.maxDepth = 1.0f;
+    vp.width = 680 - 200;
+    vp.height = 680 - 200;
+    context->getDynamicState()->applyDynamicViewport(vp);
     context->createCommandBuffers();
 
     context->run();

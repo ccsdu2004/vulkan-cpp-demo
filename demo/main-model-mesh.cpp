@@ -7,6 +7,7 @@
 #include "VK_Context.h"
 #include "VK_Image.h"
 #include "VK_Texture.h"
+#include "VK_DynamicState.h"
 
 using namespace std;
 
@@ -89,7 +90,10 @@ int main()
 
     context->setPipelineRasterizationStateCreateInfo(rasterCreateInfo);
 
+    context->addDynamicState(VK_DYNAMIC_STATE_LINE_WIDTH);
     context->initPipeline();
+
+    context->getDynamicState()->applyDynamicLineWidth(2.0f);
     context->createCommandBuffers();
 
     context->run();

@@ -15,6 +15,7 @@
 #include "VK_ImageViewImpl.h"
 #include "VK_ValidationLayer.h"
 #include "VK_Allocator.h"
+#include "VK_DynamicStateImpl.h"
 
 struct QueueFamilyIndices {
     std::optional<uint32_t> graphicsFamily;
@@ -58,6 +59,7 @@ public:
     bool run()override;
 public:
     VkExtent2D getSwapChainExtent()const override;
+    VK_DynamicState* getDynamicState()const override;
 
     VK_Viewports getViewports()const override;
     void setViewports(const VK_Viewports &viewport)override;
@@ -87,7 +89,7 @@ public:
     void setPipelineTessellationStateCreateInfo(const VkPipelineTessellationStateCreateInfo &createInfo)
     override;
 public:
-    void setDynamicState(VkDynamicState dynamicState)override;
+    void addDynamicState(VkDynamicState dynamicState)override;
     VkPipelineDynamicStateCreateInfo createDynamicStateCreateInfo(
         VkPipelineDynamicStateCreateFlags flags = 0);
 public:
@@ -205,10 +207,10 @@ private:
     GLFWwindow *window = nullptr;
     std::function<void(int, int)> windowSizeChangedCallback;
 
-    VkInstance instance;
+    VkInstance instance = nullptr;
     VK_ValidationLayer *vkValidationLayer = nullptr;
 
-    VkSurfaceKHR surface;
+    VkSurfaceKHR surface = nullptr;
 
     VkPhysicalDeviceFeatures deviceFeatures{};
     VkPhysicalDeviceFeatures logicalFeatures{};
@@ -232,6 +234,7 @@ private:
     VkDescriptorSetLayout descriptorSetLayout = 0;
 
     std::vector<VkDynamicState> vkDynamicStates;
+    VK_DynamicStateImpl* vkDynamicState = nullptr;
 
     VkPipelineLayout pipelineLayout;
     VkPipeline graphicsPipeline = 0;

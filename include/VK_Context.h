@@ -3,17 +3,18 @@
 #include <functional>
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
-#include "VK_ShaderSet.h"
-#include "VK_Viewports.h"
-#include "VK_Texture.h"
-#include "VK_Buffer.h"
-#include "VK_ImageView.h"
+#include <VK_ShaderSet.h>
+#include <VK_Viewports.h>
+#include <VK_Texture.h>
+#include <VK_Buffer.h>
+#include <VK_ImageView.h>
 
 class VK_Buffer;
 class VK_UniformBuffer;
 class VK_Image;
 class VK_Texture;
 class VK_Context;
+class VK_DynamicState;
 class VulKanAppData;
 
 class VK_Context : public VK_Deleter
@@ -36,6 +37,7 @@ public:
     virtual bool run() = 0;
 public:
     virtual VkExtent2D getSwapChainExtent()const = 0;
+    virtual VK_DynamicState* getDynamicState()const = 0;
 
     virtual VK_Viewports getViewports()const = 0;
     virtual void setViewports(const VK_Viewports &viewport) = 0;
@@ -61,7 +63,7 @@ public:
     virtual VkPipelineTessellationStateCreateInfo getVkPipelineTessellationStateCreateInfo() = 0;
     virtual void setPipelineTessellationStateCreateInfo(const VkPipelineTessellationStateCreateInfo &createInfo) = 0;
 
-    virtual void setDynamicState(VkDynamicState dynamicState) = 0;
+    virtual void addDynamicState(VkDynamicState dynamicState) = 0;
 public:
     virtual VK_ShaderSet *createShaderSet() = 0;
 

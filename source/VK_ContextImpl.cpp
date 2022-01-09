@@ -25,10 +25,12 @@ VK_ContextImpl::VK_ContextImpl(const VK_ContextConfig &config):
 {
     glfwInit();
     vkAllocator = new VK_Allocator();
+    vkDynamicState = new VK_DynamicStateImpl();
 }
 
 VK_ContextImpl::~VK_ContextImpl()
 {
+    vkDynamicState->release();
     glfwTerminate();
 }
 
@@ -142,6 +144,11 @@ VkExtent2D VK_ContextImpl::getSwapChainExtent() const
     return vkSwapChainExtent;
 }
 
+VK_DynamicState *VK_ContextImpl::getDynamicState() const
+{
+    return vkDynamicState;
+}
+
 VK_Viewports VK_ContextImpl::getViewports() const
 {
     return vkViewports;
@@ -250,9 +257,9 @@ void VK_ContextImpl::setPipelineTessellationStateCreateInfo(const
                                             (createInfo);
 }
 
-void VK_ContextImpl::setDynamicState(VkDynamicState dynamicState)
+void VK_ContextImpl::addDynamicState(VkDynamicState dynamicState)
 {
-    vkDynamicStates.emplace_back(dynamicState);
+    vkDynamicStates.push_back(dynamicState);
 }
 
 VkPipelineDynamicStateCreateInfo VK_ContextImpl::createDynamicStateCreateInfo(
@@ -1258,6 +1265,8 @@ bool VK_ContextImpl::createCommandBuffers()
         renderPassInfo.pClearValues = clearValues.data();
 
         vkCmdBeginRenderPass(commandBuffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+        vkDynamicState->apply(commandBuffers[i]);
 
         vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
         vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1,

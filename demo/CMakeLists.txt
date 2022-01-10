@@ -14,6 +14,8 @@ set(DEMOS
     model-mesh
     model-mesh-geom
     model-mesh-tess
+    model-toon
+    model-outline
     )
 
 foreach(var IN LISTS DEMOS)

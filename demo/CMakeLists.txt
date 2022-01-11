@@ -30,6 +30,6 @@ endforeach()
 
 if(WIN32)
 else()
-    add_executable(opengl opengl.cpp glad/glad.c)
+    add_executable(opengl main-opengl.cpp glad/glad.c)
     target_link_libraries(opengl glfw GL dl)
 endif()

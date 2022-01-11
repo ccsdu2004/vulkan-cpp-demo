@@ -122,7 +122,7 @@ int main()
     auto imageView = context->createImageView(imageViewCreateInfo);
     context->addImageView(imageView);
 
-    context->initVulkanContext(shaderSet);
+    context->initVulkanContext();
 
     auto rasterCreateInfo = context->getPipelineRasterizationStateCreateInfo();
     rasterCreateInfo.cullMode = VK_CULL_MODE_NONE;
@@ -134,7 +134,7 @@ int main()
     depthStencilState.back.failOp = VK_STENCIL_OP_REPLACE;
     depthStencilState.back.depthFailOp = VK_STENCIL_OP_REPLACE;
     depthStencilState.back.passOp = VK_STENCIL_OP_REPLACE;
-    depthStencilState.back.compareMask = 0x0f;
+    depthStencilState.back.compareMask = 0xff;
     depthStencilState.back.writeMask = 0xff;
     depthStencilState.back.reference = 1;
     depthStencilState.front = depthStencilState.back;

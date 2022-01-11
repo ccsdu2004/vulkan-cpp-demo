@@ -22,9 +22,13 @@ VK_Context* context = nullptr;
 
 void onMouseButtonCallback(int button, int action, int mods)
 {
+    (void)button;
+    (void)mods;
+
     auto blend = context->getColorBlendAttachmentState();
     if(action) {
         blend.blendEnable = VK_TRUE;
+        blend.colorWriteMask = 0xf;
         blend.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
         blend.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
         blend.colorBlendOp = VK_BLEND_OP_ADD;
@@ -67,7 +71,7 @@ int main()
         return -1;
     }
 
-    context->initVulkanContext(shaderSet);
+    context->initVulkanContext();
     context->initPipeline();
 
     auto buffer = context->createVertexBuffer(vertices1, 7);

@@ -1,8 +1,7 @@
 #include <iostream>
-#include <fstream>
 #include <cstring>
 #include <set>
-#include <exception>
+#include <fstream>
 #include <cmath>
 #include "VK_ContextImpl.h"
 #include "VK_ShaderSetImpl.h"
@@ -86,14 +85,15 @@ bool VK_ContextImpl::initVulkanDevice(const VK_Config &config)
            createSwapChainImageViews();
 }
 
-bool VK_ContextImpl::initVulkanContext(VK_ShaderSet *shaderSet)
+bool VK_ContextImpl::initVulkanContext()
 {
-    if (!shaderSet) {
-        std::cerr << "invalid input shaderSet" << std::endl;
+    if(!vkBaseShaderSet) {
+        std::cerr << "not create vkBaseShader" << std::endl;
         return false;
     }
-    vkShaderSet = shaderSet;
-    createGraphicsPiplelineCache();
+
+    vkPipelineCache = new VK_PipelineCacheImpl(device, vkAllocator->getAllocator(), deviceProperties);
+    vkPipelineCache->create(vkConfig.pipelineCacheFile, appConfig.debug);
 
     createRenderPass();
 
@@ -321,8 +321,11 @@ void VK_ContextImpl::cleanupSwapChain()
 
 void VK_ContextImpl::cleanup()
 {
-    if (vkShaderSet)
-        vkShaderSet->release();
+    vkBaseShaderSet->release();
+
+    //cleanVulkanObjectContainer(vkShaders);
+
+    cleanVulkanObjectContainer(vkBuffers);
 
     while (true) {
         auto itr = vkBuffers.begin();
@@ -333,8 +336,8 @@ void VK_ContextImpl::cleanup()
 
     vkBuffers.clear();
 
-    saveGraphicsPiplineCache();
-    vkDestroyPipelineCache(device, pipelineCache, getAllocation());
+    vkPipelineCache->saveGraphicsPiplineCache(vkConfig.pipelineCacheFile);
+    vkPipelineCache->release();
 
     cleanupSwapChain();
 
@@ -683,8 +686,8 @@ bool VK_ContextImpl::createDescriptorSetLayout()
 {
     VkDescriptorSetLayoutCreateInfo layoutInfo{};
     layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-    layoutInfo.bindingCount = vkShaderSet->getDescriptorSetLayoutBindingCount();
-    layoutInfo.pBindings = vkShaderSet->getDescriptorSetLayoutBindingData();
+    layoutInfo.bindingCount = vkBaseShaderSet->getDescriptorSetLayoutBindingCount();
+    layoutInfo.pBindings = vkBaseShaderSet->getDescriptorSetLayoutBindingData();
     layoutInfo.pNext = nullptr;
 
     if (vkCreateDescriptorSetLayout(device, &layoutInfo, getAllocation(), &descriptorSetLayout) != VK_SUCCESS) {
@@ -758,52 +761,15 @@ bool VK_ContextImpl::isValidPipelineCacheData(const std::string &filename, const
     return false;
 }
 
-void VK_ContextImpl::createGraphicsPiplelineCache()
-{
-    auto buffer = readDataFromFile(vkConfig.pipelineCacheFile);
-    bool valid = appConfig.debug
-                 && isValidPipelineCacheData(vkConfig.pipelineCacheFile, buffer.data(), buffer.size());
-
-    VkPipelineCacheCreateInfo PipelineCacheCreateInfo = {};
-    PipelineCacheCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;
-    PipelineCacheCreateInfo.pNext = nullptr;
-    PipelineCacheCreateInfo.initialDataSize = valid ? buffer.size() : 0;
-    PipelineCacheCreateInfo.pInitialData = valid ? buffer.data() : nullptr;
-
-    if (vkCreatePipelineCache(device, &PipelineCacheCreateInfo, getAllocation(), &pipelineCache) != VK_SUCCESS)
-        std::cerr << "creating pipeline cache error" << std::endl;
-}
-
-bool VK_ContextImpl::saveGraphicsPiplineCache()
-{
-    size_t cacheSize = 0;
-
-    if (vkGetPipelineCacheData(device, pipelineCache, &cacheSize, nullptr) != VK_SUCCESS) {
-        std::cerr << "getting cache size fail from pipelinecache" << std::endl;
-        return false;
-    }
-
-    auto cacheData = std::vector<char>(sizeof(char) * cacheSize, 0);
-
-    if (vkGetPipelineCacheData(device, pipelineCache, &cacheSize, &cacheData[0]) != VK_SUCCESS) {
-        std::cerr << "getting cache fail from pipelinecache" << std::endl;
-        return false;
-    }
-
-    std::ofstream stream(vkConfig.pipelineCacheFile, std::ios::binary);
-    if (stream.is_open()) {
-        stream.write(cacheData.data(), cacheData.size());
-        stream.close();
-    } else {
-        std::cerr << "open pipeline cache data target file failed!" << std::endl;
-        return false;
-    }
-    return true;
-}
-
 VK_ShaderSet *VK_ContextImpl::createShaderSet()
 {
-    return new VK_ShaderSetImpl(this, device);
+    auto shaderSet = new VK_ShaderSetImpl(this, device);
+    if(vkBaseShaderSet == nullptr) {
+        vkBaseShaderSet = shaderSet;
+        return vkBaseShaderSet;
+    }
+    vkShaders.push_back(shaderSet);
+    return shaderSet;
 }
 
 VK_Buffer *VK_ContextImpl::createVertexBuffer(const std::vector<float> &vertices, uint32_t count,
@@ -987,9 +953,9 @@ bool VK_ContextImpl::createGraphicsPipeline()
     vertexInputInfo.pNext = nullptr;
 
     vertexInputInfo.vertexBindingDescriptionCount = 1;
-    vertexInputInfo.vertexAttributeDescriptionCount = vkShaderSet->getAttributeDescriptionCount();
-    vertexInputInfo.pVertexBindingDescriptions = vkShaderSet->getBindingDescription();
-    vertexInputInfo.pVertexAttributeDescriptions = vkShaderSet->getAttributeDescriptionData();
+    vertexInputInfo.vertexAttributeDescriptionCount = vkBaseShaderSet->getAttributeDescriptionCount();
+    vertexInputInfo.pVertexBindingDescriptions = vkBaseShaderSet->getBindingDescription();
+    vertexInputInfo.pVertexAttributeDescriptions = vkBaseShaderSet->getAttributeDescriptionData();
 
     VkPipelineViewportStateCreateInfo viewportState{};
     viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
@@ -1029,8 +995,8 @@ bool VK_ContextImpl::createGraphicsPipeline()
 
     VkGraphicsPipelineCreateInfo pipelineInfo{};
     pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-    pipelineInfo.stageCount = vkShaderSet->getCreateInfoCount();
-    pipelineInfo.pStages = vkShaderSet->getCreateInfoData();
+    pipelineInfo.stageCount = vkBaseShaderSet->getCreateInfoCount();
+    pipelineInfo.pStages = vkBaseShaderSet->getCreateInfoData();
     pipelineInfo.pVertexInputState = &vertexInputInfo;
 
     pipelineInfo.pInputAssemblyState = &inputAssemblyStateCreateInfo;
@@ -1053,7 +1019,7 @@ bool VK_ContextImpl::createGraphicsPipeline()
     pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
     pipelineInfo.pNext = nullptr;
 
-    if (vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineInfo, getAllocation(),
+    if (vkCreateGraphicsPipelines(device, vkPipelineCache->getPipelineCache(), 1, &pipelineInfo, getAllocation(),
                                   &graphicsPipeline) != VK_SUCCESS) {
         std::cerr << "failed to create graphics pipeline!" << std::endl;
         return false;
@@ -1175,7 +1141,7 @@ bool VK_ContextImpl::hasStencilComponent(VkFormat format)
 
 void VK_ContextImpl::createDescriptorPool()
 {
-    vkShaderSet->updateDescriptorPoolSize(swapChainImageViews.size());
+    vkBaseShaderSet->updateDescriptorPoolSize(swapChainImageViews.size());
 
     VkDescriptorPoolSize poolSize{};
     poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -1183,9 +1149,9 @@ void VK_ContextImpl::createDescriptorPool()
 
     VkDescriptorPoolCreateInfo poolInfo{};
     poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-    if (vkShaderSet->getDescriptorPoolSizeCount() > 0) {
-        poolInfo.poolSizeCount = vkShaderSet->getDescriptorPoolSizeCount();
-        poolInfo.pPoolSizes = vkShaderSet->getDescriptorPoolSizeData();
+    if (vkBaseShaderSet->getDescriptorPoolSizeCount() > 0) {
+        poolInfo.poolSizeCount = vkBaseShaderSet->getDescriptorPoolSizeCount();
+        poolInfo.pPoolSizes = vkBaseShaderSet->getDescriptorPoolSizeData();
     } else {
         poolInfo.poolSizeCount = 1;
         poolInfo.pPoolSizes = &poolSize;
@@ -1513,14 +1479,11 @@ QueueFamilyIndices VK_ContextImpl::findQueueFamilies(VkPhysicalDevice device)
         VkBool32 presentSupport = false;
         vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &presentSupport);
 
-        if (presentSupport) {
+        if (presentSupport)
             indices.presentFamily = i;
-        }
 
-        if (indices.isComplete()) {
+        if (indices.isComplete())
             break;
-        }
-
         i++;
     }
 
@@ -1535,9 +1498,8 @@ std::vector<const char *> VK_ContextImpl::getRequiredExtensions()
 
     std::vector<const char *> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
 
-    if (appConfig.debug) {
+    if (appConfig.debug)
         extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-    }
 
     return extensions;
 }

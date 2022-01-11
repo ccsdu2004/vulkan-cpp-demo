@@ -85,7 +85,7 @@ void onFrameSizeChanged(int width, int height)
 int main()
 {
     VK_ContextConfig config;
-    config.debug = false;
+    config.debug = true;
     config.name = "Cube Texure";
 
     context = createVkContext(config);
@@ -136,7 +136,7 @@ int main()
     auto imageView = context->createImageView(imageViewCreateInfo);
     context->addImageView(imageView);
 
-    context->initVulkanContext(shaderSet);
+    context->initVulkanContext();
 
     auto rasterCreateInfo = context->getPipelineRasterizationStateCreateInfo();
     rasterCreateInfo.cullMode = VK_CULL_MODE_NONE;

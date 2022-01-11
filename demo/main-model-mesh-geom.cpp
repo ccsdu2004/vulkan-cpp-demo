@@ -81,7 +81,7 @@ int main()
     auto buffer = context->createVertexBuffer("../model/pug.obj", true);
     context->addBuffer(buffer);
 
-    context->initVulkanContext(shaderSet);
+    context->initVulkanContext();
 
     auto rasterCreateInfo = context->getPipelineRasterizationStateCreateInfo();
     rasterCreateInfo.polygonMode = VK_POLYGON_MODE_FILL;

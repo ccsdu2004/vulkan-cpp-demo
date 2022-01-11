@@ -90,7 +90,7 @@ int main()
     auto imageView = context->createImageView(imageViewCreateInfo);
     context->addImageView(imageView);
 
-    context->initVulkanContext(shaderSet);
+    context->initVulkanContext();
     context->initPipeline();
     context->createCommandBuffers();
 

@@ -16,6 +16,7 @@
 #include "VK_ValidationLayer.h"
 #include "VK_Allocator.h"
 #include "VK_DynamicStateImpl.h"
+#include "VK_PipelineCacheImpl.h"
 
 struct QueueFamilyIndices {
     std::optional<uint32_t> graphicsFamily;
@@ -52,7 +53,7 @@ public:
     void setOnFrameSizeChanged(std::function<void(int, int)> cb) override;
 
     bool initVulkanDevice(const VK_Config &config)override;
-    bool initVulkanContext(VK_ShaderSet *shaderSet)override;
+    bool initVulkanContext()override;
 
     bool initPipeline()override;
     bool createCommandBuffers()override;
@@ -148,8 +149,6 @@ private:
     bool createDescriptorSetLayout();
 
     bool isValidPipelineCacheData(const std::string &filename, const char *buffer, uint32_t size);
-    void createGraphicsPiplelineCache();
-    bool saveGraphicsPiplineCache();
     bool createGraphicsPipeline();
 
     void createFramebuffers();
@@ -238,7 +237,7 @@ private:
 
     VkPipelineLayout pipelineLayout;
     VkPipeline graphicsPipeline = 0;
-    VkPipelineCache pipelineCache = 0;
+    VK_PipelineCacheImpl* vkPipelineCache = nullptr;
 
     VkCommandPool commandPool = 0;
     std::vector<VkCommandBuffer> commandBuffers;
@@ -260,7 +259,8 @@ private:
 
     bool framebufferResized = false;
 
-    VK_ShaderSet *vkShaderSet = nullptr;
+    VK_ShaderSet *vkBaseShaderSet = nullptr;
+    std::list<VK_ShaderSet*> vkShaders;
     std::list<VK_Buffer *> vkBuffers;
 
     std::list<VK_UniformBuffer *> vkUniformBuffers;
@@ -279,6 +279,5 @@ private:
     std::list<VK_ImageView *> vkImageViewList;
     std::set<VK_ImageView *> vkUnusedImageViewList;
 };
-
 
 #endif // VK_CONTEXTIMPL_H

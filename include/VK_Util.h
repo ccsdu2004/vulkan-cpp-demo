@@ -27,7 +27,6 @@ void cleanVulkanObjectContainer(C& container)
     }
 }
 
-
 std::vector<char> readDataFromFile(const std::string &filename);
 
 #endif // VK_UTIL_H

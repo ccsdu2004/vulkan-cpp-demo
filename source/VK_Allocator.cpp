@@ -7,6 +7,9 @@
 void *allocationFunction(void *userData, size_t size, size_t alignment,
                          VkSystemAllocationScope allocationScope)
 {
+    (void)userData;
+    (void)alignment;
+    (void)allocationScope;
     void *ptr = malloc(size);
     memset(ptr, 0, size);
     return ptr;
@@ -14,22 +17,34 @@ void *allocationFunction(void *userData, size_t size, size_t alignment,
 
 void freeFunction(void *userData, void *memory)
 {
+    (void)userData;
     free(memory);
 }
 
 void *reallocationFunction(void *userData, void *original, size_t size, size_t alignment,
                            VkSystemAllocationScope allocationScope)
 {
+    (void)userData;
+    (void)alignment;
+    (void)allocationScope;
     return realloc(original, size);
 }
 
 void internalAllocationNotification(void *userData, size_t size,
                                     VkInternalAllocationType allocationType, VkSystemAllocationScope allocationScope)
 {
+    (void)userData;
+    (void)size;
+    (void)allocationType;
+    (void)allocationScope;
 }
 
 void internalFreeNotification(void *userData, size_t size, VkInternalAllocationType allocationType, VkSystemAllocationScope allocationScope)
 {
+    (void)userData;
+    (void)size;
+    (void)allocationType;
+    (void)allocationScope;
 }
 
 VkAllocationCallbacks *VK_Allocator::getAllocator()

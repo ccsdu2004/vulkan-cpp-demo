@@ -22,6 +22,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
 #find_package(GLFW REQUIRED)
 
 INCLUDE_DIRECTORIES(include)
+INCLUDE_DIRECTORIES(thirdparty)
 INCLUDE_DIRECTORIES(source)
 INCLUDE_DIRECTORIES(./)
 
@@ -31,9 +32,10 @@ add_library(
      include/VK_Vertex.h
      include/VK_Context.h
      include/VK_ShaderSet.h
+     include/VK_Texture.h
      include/VK_UniformBuffer.h
+     include/VK_PipelineCache.h
      include/VK_Util.h
-     source/stb_image.cpp
      source/VK_ContextImpl.h
      source/VK_ShaderSetImpl.h
      source/VK_VertexBuffer.h
@@ -55,9 +57,12 @@ add_library(
      source/VK_Allocator.cpp
      source/VK_ObjLoader.cpp
      source/VK_ObjLoader.h
-     source/tiny_obj_loader.cc
      source/VK_DynamicStateImpl.h
      source/VK_DynamicStateImpl.cpp
+     source/VK_PipelineCacheImpl.h
+     source/VK_PipelineCacheImpl.cpp
+     thirdparty/tiny_obj_loader.cc
+     thirdparty/stb_image.cpp
 )
 
 add_subdirectory(demo)

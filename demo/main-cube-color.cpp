@@ -136,7 +136,7 @@ int main()
     auto imageView = context->createImageView(imageViewCreateInfo);
     context->addImageView(imageView);
 
-    context->initVulkanContext(shaderSet);
+    context->initVulkanContext();
 
     auto rasterCreateInfo = context->getPipelineRasterizationStateCreateInfo();
     rasterCreateInfo.cullMode = VK_CULL_MODE_NONE;

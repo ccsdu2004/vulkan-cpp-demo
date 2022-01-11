@@ -31,7 +31,7 @@ public:
     virtual VkAllocationCallbacks* getAllocation() = 0;
 
     virtual bool initVulkanDevice(const VK_Config &config) = 0;
-    virtual bool initVulkanContext(VK_ShaderSet *shaderSet) = 0;
+    virtual bool initVulkanContext() = 0;
     virtual bool initPipeline() = 0;
     virtual bool createCommandBuffers() = 0;
     virtual bool run() = 0;

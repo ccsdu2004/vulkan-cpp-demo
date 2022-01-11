@@ -86,7 +86,7 @@ int main()
     auto buffer = context->createVertexBuffer("../model/pug.obj", true);
     context->addBuffer(buffer);
 
-    context->initVulkanContext(shaderSet);
+    context->initVulkanContext();
 
     auto tessellationCreateInfo = context->createPipelineTessellationStateCreateInfo();
     tessellationCreateInfo.patchControlPoints = 3;

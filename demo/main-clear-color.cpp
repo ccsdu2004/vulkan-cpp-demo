@@ -48,7 +48,7 @@ int main()
         return -1;
     }
 
-    context->initVulkanContext(shaderSet);
+    context->initVulkanContext();
     context->initPipeline();
 
     auto buffer = context->createVertexBuffer(vertices1, 7);

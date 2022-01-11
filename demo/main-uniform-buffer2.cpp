@@ -66,11 +66,11 @@ int main()
     shaderSet->appendAttributeDescription(1, sizeof (float) * 4);
 
     VkDescriptorSetLayoutBinding uniformBinding = VK_ShaderSet::createDescriptorSetLayoutBinding(0,
-                                                                                                 VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT);
+            VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT);
     shaderSet->addDescriptorSetLayoutBinding(uniformBinding);
 
     uniformBinding = VK_ShaderSet::createDescriptorSetLayoutBinding(1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                                                                    VK_SHADER_STAGE_FRAGMENT_BIT);
+                     VK_SHADER_STAGE_FRAGMENT_BIT);
     shaderSet->addDescriptorSetLayoutBinding(uniformBinding);
 
     if (!shaderSet->isValid()) {
@@ -91,7 +91,7 @@ int main()
     ubo->setWriteDataCallback(updateUniformColor);
     context->addUniformBuffer(ubo);
 
-    context->initVulkanContext(shaderSet);
+    context->initVulkanContext();
     context->initPipeline();
     context->createCommandBuffers();
 

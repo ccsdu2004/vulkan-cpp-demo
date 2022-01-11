@@ -26,6 +26,9 @@ VK_Viewports newViewports;
 
 void onMouseButtonCallback(int button, int action, int mods)
 {
+    (void)button;
+    (void)mods;
+
     auto size = context->getSwapChainExtent();
 
     auto vp1 = VK_Viewports::createViewport(size.width >> 1, size.height);
@@ -88,7 +91,7 @@ int main()
         return -1;
     }
 
-    context->initVulkanContext(shaderSet);
+    context->initVulkanContext();
     context->initPipeline();
 
     viewports = context->getViewports();

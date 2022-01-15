@@ -1,5 +1,6 @@
 #include <iostream>
 #include "VK_Context.h"
+#include "VK_Pipeline.h"
 
 using namespace std;
 
@@ -19,28 +20,34 @@ const std::vector<float> vertices2 = {
     };
 
 VK_Context* context = nullptr;
+VK_Pipeline* pipeline = nullptr;
 
 void onMouseButtonCallback(int button, int action, int mods)
 {
     (void)button;
     (void)mods;
 
-    auto blend = context->getColorBlendAttachmentState();
+    auto createInfo = pipeline->getColorBlendStateCreateInfo();
+    VkPipelineColorBlendAttachmentState blend{};
+    createInfo.attachmentCount = 1;
+
     if(action) {
         blend.blendEnable = VK_TRUE;
-        blend.colorWriteMask = 0xf;
+        blend.colorWriteMask = 0xff;
         blend.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
         blend.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
         blend.colorBlendOp = VK_BLEND_OP_ADD;
         blend.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
         blend.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
         blend.alphaBlendOp = VK_BLEND_OP_ADD;
-        context->setColorBlendAttachmentState(blend);
+        createInfo.pAttachments = &blend;
+        pipeline->setColorBlendStateCreateInfo(createInfo);
         context->setClearColor(0, 0, 0.2, 0.3);
     } else {
         blend.blendEnable = VK_FALSE;
-        context->setColorBlendAttachmentState(blend);
-        context->setClearColor(0, 0.2, 0.2, 0.3);
+        createInfo.pAttachments = &blend;
+        pipeline->setColorBlendStateCreateInfo(createInfo);
+        context->setClearColor(0, 0.3, 0.2, 0.3);
     }
 }
 
@@ -72,13 +79,14 @@ int main()
     }
 
     context->initVulkanContext();
-    context->initPipeline();
+    pipeline = context->createPipeline();
+    pipeline->create();
 
     auto buffer = context->createVertexBuffer(vertices1, 7);
-    context->addBuffer(buffer);
+    pipeline->addRenderBuffer(buffer);
 
     buffer = context->createVertexBuffer(vertices2, 7);
-    context->addBuffer(buffer);
+    pipeline->addRenderBuffer(buffer);
 
     context->createCommandBuffers();
 

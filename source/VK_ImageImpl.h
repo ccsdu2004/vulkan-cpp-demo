@@ -21,6 +21,16 @@ public:
     int getMipLevel()const override;
 
     void release()override;
+protected:
+    void generateMipmaps(VkImage image, VkFormat imageFormat, int32_t texWidth,
+                         int32_t texHeight,
+                         uint32_t mipLevels);
+
+    void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width,
+                           uint32_t height);
+
+    void transitionImageLayout(VkImage image, VkImageLayout oldLayout,
+                               VkImageLayout newLayout, uint32_t mipLevels);
 private:
     VkDevice device = nullptr;
     VK_ContextImpl* context = nullptr;

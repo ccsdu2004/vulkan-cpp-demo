@@ -6,6 +6,9 @@
 class VK_DynamicState : public VK_Deleter
 {
 public:
+    virtual void addDynamicState(VkDynamicState dynamicState) = 0;
+    virtual VkPipelineDynamicStateCreateInfo createDynamicStateCreateInfo(VkPipelineDynamicStateCreateFlags flags) = 0;
+
     virtual void applyDynamicViewport(const VkViewport& viewport) = 0;
     virtual void applyDynamicScissor(const VkRect2D& scissor) = 0;
     virtual void applyDynamicLineWidth(float lineWidth) = 0;

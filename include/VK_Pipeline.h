@@ -5,7 +5,6 @@
 #include <VK_Deleter.h>
 
 class VK_ShaderSet;
-class VK_Viewports;
 class VK_Buffer;
 class VK_DynamicState;
 
@@ -27,9 +26,6 @@ public:
     static VkPipelineTessellationStateCreateInfo createPipelineTessellationStateCreateInfo(uint32_t patch);
     virtual void setTessellationStateCreateInfo(const VkPipelineTessellationStateCreateInfo &createInfo) = 0;
     virtual VkPipelineTessellationStateCreateInfo getTessellationStateCreateInfo() = 0;
-
-    virtual void setViewports(const VK_Viewports& viewports) = 0;
-    virtual VK_Viewports getViewports()const = 0;
 
     virtual void setMultisampleStateCreateInfo(const VkPipelineMultisampleStateCreateInfo& createInfo) = 0;
     virtual VkPipelineMultisampleStateCreateInfo getMultisampleStateCreateInfo()const = 0;

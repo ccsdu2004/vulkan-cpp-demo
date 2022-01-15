@@ -1,5 +1,6 @@
 #include <iostream>
 #include "VK_Context.h"
+#include "VK_Pipeline.h"
 
 using namespace std;
 
@@ -38,11 +39,11 @@ int main()
     }
 
     context->initVulkanContext();
-    context->initPipeline();
-
+    auto pipeline = context->createPipeline();
+    pipeline->create();
 
     auto buffer = context->createVertexBuffer(vertices1, 7);
-    context->addBuffer(buffer);
+    pipeline->addRenderBuffer(buffer);
 
     context->createCommandBuffers();
 

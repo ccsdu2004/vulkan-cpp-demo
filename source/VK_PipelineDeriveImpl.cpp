@@ -11,6 +11,7 @@ VK_PipelineDeriveImpl::VK_PipelineDeriveImpl(VK_ContextImpl *context, VK_ShaderS
 bool VK_PipelineDeriveImpl::create()
 {
     pipelineCreateInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+    pipelineCreateInfo.flags = 0;
 
     {
         VK_ShaderSet* shader = shaderSet;
@@ -33,11 +34,23 @@ bool VK_PipelineDeriveImpl::create()
     VkPipelineViewportStateCreateInfo viewportState{};
     viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
 
-    auto viewports = getViewports();
-    viewportState.viewportCount = viewports.getViewportCount();
-    viewportState.pViewports = viewports.getViewportData();
-    viewportState.scissorCount = viewports.getViewportCount();
-    viewportState.pScissors = viewports.getScissorData();
+    auto swapSize = context->getSwapChainExtent();
+    VkViewport viewport{};
+    viewport.x = 0.0f;
+    viewport.y = 0.0f;
+    viewport.width = (float) swapSize.width;
+    viewport.height = (float) swapSize.height;
+    viewport.minDepth = 0.0f;
+    viewport.maxDepth = 1.0f;
+
+    VkRect2D scissor{};
+    scissor.offset = {0, 0};
+    scissor.extent = swapSize;
+
+    viewportState.viewportCount = 1;
+    viewportState.pViewports = &viewport;
+    viewportState.scissorCount = 1;
+    viewportState.pScissors = &scissor;
     pipelineCreateInfo.pViewportState = &viewportState;
 
     auto rasterizationStateCreateInfo = getRasterizationStateCreateInfo();
@@ -63,18 +76,16 @@ bool VK_PipelineDeriveImpl::create()
     pipelineCreateInfo.layout = context->getPipelineLayout();
     pipelineCreateInfo.renderPass = context->getRenderPass();
     pipelineCreateInfo.subpass = 0;
-    pipelineCreateInfo.basePipelineHandle = VK_NULL_HANDLE;
-    pipelineCreateInfo.pNext = nullptr;
-
-    pipelineCreateInfo.flags = VK_PIPELINE_CREATE_DERIVATIVE_BIT;
     pipelineCreateInfo.basePipelineHandle = parent->pipeline;
     pipelineCreateInfo.basePipelineIndex = -1;
+    pipelineCreateInfo.pNext = nullptr;
 
     if (vkCreateGraphicsPipelines(context->getDevice(), context->getPipelineCache()->getPipelineCache(), 1, &pipelineCreateInfo, context->getAllocation(),
                                   &pipeline) != VK_SUCCESS) {
-        std::cerr << "failed to create drivative graphics pipeline!" << std::endl;
+        std::cerr << "failed to create graphics pipeline!" << std::endl;
         return false;
     }
 
+    needUpdate = false;
     return true;
 }

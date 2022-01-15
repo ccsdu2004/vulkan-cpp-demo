@@ -2,7 +2,6 @@
 #define VK_PIPLELINEIMPL_H
 #include <list>
 #include <VK_Pipeline.h>
-#include <VK_Viewports.h>
 
 class VK_ContextImpl;
 class VK_DynamicStateImpl;
@@ -32,9 +31,6 @@ public:
     void setTessellationStateCreateInfo(const VkPipelineTessellationStateCreateInfo &createInfo)override;
     VkPipelineTessellationStateCreateInfo getTessellationStateCreateInfo()override;
 
-    void setViewports(const VK_Viewports& viewports)override;
-    VK_Viewports getViewports()const override;
-
     void setMultisampleStateCreateInfo(const VkPipelineMultisampleStateCreateInfo& createInfo)override;
     VkPipelineMultisampleStateCreateInfo getMultisampleStateCreateInfo()const override;
 
@@ -63,12 +59,10 @@ protected:
     void initRasterizationStateCreateInfo();
     void initDepthStencilStateCreateInfo();
     void initColorBlendAttachmentState();
-    void initViewport();
 protected:
     VK_ContextImpl* context = nullptr;
     VK_ShaderSet* shaderSet = nullptr;
     VK_PipelineImpl* parent = nullptr;
-    std::list<VK_PipelineImpl*> chilren;
 
     VkPipeline pipeline = nullptr;
 
@@ -77,7 +71,6 @@ protected:
     std::optional<VkPipelineRasterizationStateCreateInfo> rasterizationStateCreateInfo;
     std::optional<VkPipelineDepthStencilStateCreateInfo> depthStencilStateCreateInfo;
     std::optional<VkPipelineMultisampleStateCreateInfo> multiSampleStateCreateInfo;
-    std::optional<VK_Viewports> viewports;
 
     VkPipelineColorBlendAttachmentState colorBlendAttachment{};
     std::optional<VkPipelineColorBlendStateCreateInfo> colorBlendStateCreateInfo;

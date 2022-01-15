@@ -35,6 +35,7 @@ add_library(
      include/VK_Texture.h
      include/VK_UniformBuffer.h
      include/VK_PipelineCache.h
+     include/VK_Pipeline.h
      include/VK_Util.h
      source/VK_ContextImpl.h
      source/VK_ShaderSetImpl.h
@@ -61,6 +62,11 @@ add_library(
      source/VK_DynamicStateImpl.cpp
      source/VK_PipelineCacheImpl.h
      source/VK_PipelineCacheImpl.cpp
+     source/VK_Pipeline.cpp
+     source/VK_PipelineImpl.h
+     source/VK_PipelineImpl.cpp
+     source/VK_PipelineDeriveImpl.h
+     source/VK_PipelineDeriveImpl.cpp
      thirdparty/tiny_obj_loader.cc
      thirdparty/stb_image.cpp
 )

@@ -17,6 +17,7 @@
 #include "VK_Allocator.h"
 #include "VK_DynamicStateImpl.h"
 #include "VK_PipelineCacheImpl.h"
+#include "VK_PipelineImpl.h"
 
 struct QueueFamilyIndices {
     std::optional<uint32_t> graphicsFamily;
@@ -53,46 +54,26 @@ public:
     void setOnFrameSizeChanged(std::function<void(int, int)> cb) override;
 
     bool initVulkanDevice(const VK_Config &config)override;
-    bool initVulkanContext()override;
+    VkDevice getDevice()const override;
+    VK_PipelineCache *getPipelineCache()const override;
+    VkPhysicalDevice getPhysicalDevice()const override;
+    VkSampleCountFlagBits getSampleCountFlagBits()const;
 
-    bool initPipeline()override;
+    bool initVulkanContext()override;
+    VkRenderPass getRenderPass()const;
+    VkPipelineLayout getPipelineLayout()const;
+
+    VK_Pipeline* createPipeline() override;
+    void addPipeline(VK_PipelineImpl* pipeline);
     bool createCommandBuffers()override;
     bool run()override;
 public:
     VkExtent2D getSwapChainExtent()const override;
-    VK_DynamicState* getDynamicState()const override;
-
-    VK_Viewports getViewports()const override;
-    void setViewports(const VK_Viewports &viewport)override;
 public:
     void setClearColor(float r, float g, float b, float a)override;
     void setClearDepthStencil(float depth, uint32_t stencil)override;
 
     void setLogicalDeviceFeatures(const VkPhysicalDeviceFeatures &features)override;
-
-    VkPipelineColorBlendAttachmentState getColorBlendAttachmentState()override;
-    void setColorBlendAttachmentState(const VkPipelineColorBlendAttachmentState &state)override;
-
-    VkPipelineInputAssemblyStateCreateInfo getInputAssemblyStateCreateInfo()const override;
-    void setInputAssemblyStateCreateInfo(const VkPipelineInputAssemblyStateCreateInfo &createInfo)
-    override;
-
-    VkPipelineRasterizationStateCreateInfo getPipelineRasterizationStateCreateInfo()const override;
-    void setPipelineRasterizationStateCreateInfo(const VkPipelineRasterizationStateCreateInfo
-            &createInfo)override;
-
-    VkPipelineDepthStencilStateCreateInfo getPipelineDepthStencilStateCreateInfo()const override;
-    void setPipelineDepthStencilStateCreateInfo(const VkPipelineDepthStencilStateCreateInfo &createInfo)
-    override;
-
-    VkPipelineTessellationStateCreateInfo createPipelineTessellationStateCreateInfo()override;
-    VkPipelineTessellationStateCreateInfo getVkPipelineTessellationStateCreateInfo()override;
-    void setPipelineTessellationStateCreateInfo(const VkPipelineTessellationStateCreateInfo &createInfo)
-    override;
-public:
-    void addDynamicState(VkDynamicState dynamicState)override;
-    VkPipelineDynamicStateCreateInfo createDynamicStateCreateInfo(
-        VkPipelineDynamicStateCreateFlags flags = 0);
 public:
     VK_ShaderSet *createShaderSet()override;
 
@@ -126,13 +107,8 @@ public:
     void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size)override;
     uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties)override;
 
-    void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout,
-                               VkImageLayout newLayout,
-                               uint32_t mipLevels = 1);
-    void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height);
-
-    void generateMipmaps(VkImage image, VkFormat format, int32_t width, int32_t height,
-                         uint32_t mipLevels);
+    VkCommandBuffer beginSingleTimeCommands();
+    void endSingleTimeCommands(VkCommandBuffer commandBuffer);
 private:
     void recreateSwapChain();
 
@@ -145,10 +121,11 @@ private:
     bool createLogicalDevice();
     bool createSwapChain();
     bool createSwapChainImageViews();
+    bool createPipelineCache();
     void createRenderPass();
     bool createDescriptorSetLayout();
+    bool createPipleLayout();
 
-    bool isValidPipelineCacheData(const std::string &filename, const char *buffer, uint32_t size);
     bool createGraphicsPipeline();
 
     void createFramebuffers();
@@ -165,19 +142,13 @@ private:
 
     bool hasStencilComponent(VkFormat format);
     void createDescriptorPool();
-
     void createDescriptorSets();
-
     void createSyncObjects();
-
     void drawFrame();
 
     VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR> &availableFormats);
-
     VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR> &availablePresentModes);
-
     VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR &capabilities);
-
     SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
 
     bool isDeviceSuitable(VkPhysicalDevice device);
@@ -186,17 +157,9 @@ private:
     QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
     std::vector<const char *> getRequiredExtensions();
 
-    VkCommandBuffer beginSingleTimeCommands();
-    void endSingleTimeCommands(VkCommandBuffer commandBuffer);
-
     VkSampleCountFlagBits getMaxUsableSampleCount();
 private:
     void initClearColorAndDepthStencil();
-    void initInputAssemblyStateCreateInfo();
-    void initColorBlendAttachmentState();
-    void initRasterCreateInfo();
-    void initDepthStencilStateCreateInfo();
-    void initViewport();
 private:
     VK_ContextConfig appConfig;
     VK_Config vkConfig;
@@ -232,12 +195,9 @@ private:
     VkRenderPass renderPass;
     VkDescriptorSetLayout descriptorSetLayout = 0;
 
-    std::vector<VkDynamicState> vkDynamicStates;
-    VK_DynamicStateImpl* vkDynamicState = nullptr;
-
     VkPipelineLayout pipelineLayout;
-    VkPipeline graphicsPipeline = 0;
     VK_PipelineCacheImpl* vkPipelineCache = nullptr;
+    std::list<VK_PipelineImpl*> pipelines;
 
     VkCommandPool commandPool = 0;
     std::vector<VkCommandBuffer> commandBuffers;
@@ -265,15 +225,10 @@ private:
 
     std::list<VK_UniformBuffer *> vkUniformBuffers;
 
-    bool vkNeedUpdateSwapChain = false;
-    VK_Viewports vkViewports;
+    bool needUpdateSwapChain = false;
 
     VkClearValue vkClearValue;
-    VkPipelineColorBlendAttachmentState vkColorBlendAttachment{};
-    VkPipelineInputAssemblyStateCreateInfo inputAssemblyStateCreateInfo{};
-    VkPipelineRasterizationStateCreateInfo vkPipelineRasterizationStateCreateInfo{};
-    VkPipelineDepthStencilStateCreateInfo vkPipelineDepthStencilStateCreateInfo{};
-    std::optional<VkPipelineTessellationStateCreateInfo> vkPipelineTessellationStateCreateInfo{};
+
     std::list<VK_Image *> vkImageList;
     std::list<VK_Sampler *> vkSamplerList;
     std::list<VK_ImageView *> vkImageViewList;

@@ -34,6 +34,12 @@ uint32_t updateUniformBufferData(char *&data, uint32_t size)
     return 17 * sizeof(float);
 }
 
+void onFrameSizeChanged(int width, int height)
+{
+    pipeline->getDynamicState()->applyDynamicViewport({0, 0, (float)width * 0.5f, (float)height, 0, 1});
+    pipeline2->getDynamicState()->applyDynamicViewport({width * 0.5f, 0, (float)width * 0.5f, (float)height, 0, 1});
+}
+
 int main()
 {
     VK_ContextConfig config;
@@ -42,6 +48,7 @@ int main()
 
     context = createVkContext(config);
     context->createWindow(480, 480, true);
+    context->setOnFrameSizeChanged(onFrameSizeChanged);
 
     VkPhysicalDeviceFeatures deviceFeatures{};
     deviceFeatures.fillModeNonSolid = VK_TRUE;
@@ -95,23 +102,22 @@ int main()
     context->initVulkanContext();
 
     pipeline = context->createPipeline();
-    pipeline->getDynamicState()->addDynamicState(VkDynamicState::VK_DYNAMIC_STATE_VIEWPORT);
-    pipeline->getDynamicState()->applyDynamicViewport({0, 0, 240, 480, 0, 1});
-
     auto rasterCreateInfo = pipeline->getRasterizationStateCreateInfo();
     rasterCreateInfo.cullMode = VK_CULL_MODE_NONE;
     pipeline->setRasterizationStateCreateInfo(rasterCreateInfo);
+    pipeline->getDynamicState()->addDynamicState(VK_DYNAMIC_STATE_VIEWPORT);
     pipeline->create();
+    pipeline->getDynamicState()->applyDynamicViewport({0, 0, 240, 480, 0, 1});
     pipeline->addRenderBuffer(buffer);
 
     pipeline2 = pipeline->fork();
-    pipeline2->getDynamicState()->addDynamicState(VkDynamicState::VK_DYNAMIC_STATE_VIEWPORT);
-    pipeline2->getDynamicState()->applyDynamicViewport({240, 0, 240, 480, 0, 1});
     rasterCreateInfo = pipeline2->getRasterizationStateCreateInfo();
     rasterCreateInfo.cullMode = VK_CULL_MODE_NONE;
     rasterCreateInfo.polygonMode = VK_POLYGON_MODE_LINE;
     pipeline2->setRasterizationStateCreateInfo(rasterCreateInfo);
+    pipeline2->getDynamicState()->addDynamicState(VK_DYNAMIC_STATE_VIEWPORT);
     pipeline2->create();
+    pipeline2->getDynamicState()->applyDynamicViewport({240, 0, 240, 480, 0, 1});
     pipeline2->addRenderBuffer(buffer);
 
     context->createCommandBuffers();

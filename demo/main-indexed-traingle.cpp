@@ -1,5 +1,6 @@
 #include <iostream>
 #include "VK_Context.h"
+#include "VK_Pipeline.h"
 
 using namespace std;
 
@@ -14,11 +15,12 @@ const std::vector<uint32_t> indices = {
     0, 1, 2, 2, 3, 1
 };
 
+VK_Pipeline* pipeline = nullptr;
 VK_Context *context = nullptr;
 
 void onMouseButtonCallback(int button, int action, int mods)
 {
-    auto blend = context->getColorBlendAttachmentState();
+    VkPipelineColorBlendAttachmentState blend{};
     if (button) {
         blend.blendEnable = VK_TRUE;
         blend.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
@@ -27,10 +29,9 @@ void onMouseButtonCallback(int button, int action, int mods)
         blend.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
         blend.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
         blend.alphaBlendOp = VK_BLEND_OP_ADD;
-        context->setColorBlendAttachmentState(blend);
     } else {
         blend.blendEnable = VK_FALSE;
-        context->setColorBlendAttachmentState(blend);
+        //context->setColorBlendAttachmentState(blend);
     }
 }
 
@@ -62,10 +63,11 @@ int main()
     }
 
     context->initVulkanContext();
-    context->initPipeline();
+    auto pipeline = context->createPipeline();
+    pipeline->create();
 
     auto buffer = context->createVertexBuffer(vertices, 12, indices);
-    context->addBuffer(buffer);
+    pipeline->addRenderBuffer(buffer);
 
     context->createCommandBuffers();
 

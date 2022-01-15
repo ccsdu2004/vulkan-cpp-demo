@@ -11,7 +11,9 @@ set(DEMOS
     sampler
     texture
     model
+    model-2
     model-mesh
+    model-mesh-dynamic-linewidth
     model-mesh-geom
     model-mesh-tess
     model-toon

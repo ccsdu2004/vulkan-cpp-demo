@@ -5,6 +5,7 @@
 #include <glm/gtx/transform.hpp>
 #include "VK_UniformBuffer.h"
 #include "VK_Context.h"
+#include "VK_Pipeline.h"
 #include "VK_Image.h"
 #include "VK_Texture.h"
 #include "VK_DynamicState.h"
@@ -56,6 +57,7 @@ const std::vector<float> vertices = {
     };
 
 VK_Context *context = nullptr;
+VK_Pipeline* pipeline = nullptr;
 
 uint32_t updateUniformBufferData(char *&data, uint32_t size)
 {
@@ -76,10 +78,7 @@ uint32_t updateUniformBufferData(char *&data, uint32_t size)
 
 void onFrameSizeChanged(int width, int height)
 {
-    auto vp = VK_Viewports::createViewport(width, height);
-    VK_Viewports vps;
-    vps.addViewport(vp);
-    context->setViewports(vps);
+    pipeline->getDynamicState()->applyDynamicViewport({0, 0, (float)width, (float)height, 0, 1});
 }
 
 int main()
@@ -107,7 +106,6 @@ int main()
 
     auto samplerBinding = VK_ShaderSet::createDescriptorSetLayoutBinding(1,
                           VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
-    shaderSet->addDescriptorSetLayoutBinding(uniformBinding);
     auto samplerCreateInfo  = VK_Sampler::createSamplerCreateInfo();
     auto samplerPtr = context->createSampler(samplerCreateInfo);
     VkSampler sampler = samplerPtr->getSampler();
@@ -122,9 +120,6 @@ int main()
         return -1;
     }
 
-    auto buffer = context->createVertexBuffer(vertices, 5);
-    context->addBuffer(buffer);
-
     auto ubo = context->createUniformBuffer(0, sizeof(float) * 16);
     ubo->setWriteDataCallback(updateUniformBufferData);
     context->addUniformBuffer(ubo);
@@ -138,21 +133,16 @@ int main()
 
     context->initVulkanContext();
 
-    auto rasterCreateInfo = context->getPipelineRasterizationStateCreateInfo();
+    pipeline = context->createPipeline();
+
+    auto rasterCreateInfo = pipeline->getRasterizationStateCreateInfo();
     rasterCreateInfo.cullMode = VK_CULL_MODE_NONE;
-    context->setPipelineRasterizationStateCreateInfo(rasterCreateInfo);
+    pipeline->setRasterizationStateCreateInfo(rasterCreateInfo);
 
-    context->addDynamicState(VK_DYNAMIC_STATE_VIEWPORT);
-    context->initPipeline();
+    pipeline->create();
+    auto buffer = context->createVertexBuffer(vertices, 5);
+    pipeline->addRenderBuffer(buffer);
 
-    VkViewport vp;
-    vp.x = 100;
-    vp.y = 100;
-    vp.minDepth = 0.0f;
-    vp.maxDepth = 1.0f;
-    vp.width = 680 - 200;
-    vp.height = 680 - 200;
-    context->getDynamicState()->applyDynamicViewport(vp);
     context->createCommandBuffers();
 
     context->run();

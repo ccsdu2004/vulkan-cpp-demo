@@ -95,20 +95,6 @@ VkPipelineTessellationStateCreateInfo VK_PipelineImpl::getTessellationStateCreat
     return parent->getTessellationStateCreateInfo();
 }
 
-void VK_PipelineImpl::setViewports(const VK_Viewports & inputViewports)
-{
-    viewports = inputViewports;
-    needUpdate = true;
-}
-
-VK_Viewports VK_PipelineImpl::getViewports() const
-{
-    if(viewports.has_value())
-        return viewports.value();
-    assert(parent);
-    return parent->getViewports();
-}
-
 void VK_PipelineImpl::setMultisampleStateCreateInfo(const VkPipelineMultisampleStateCreateInfo & createInfo)
 {
     multiSampleStateCreateInfo = createInfo;
@@ -144,10 +130,6 @@ VK_DynamicState *VK_PipelineImpl::getDynamicState() const
 
 bool VK_PipelineImpl::create()
 {
-    for(auto child : chilren)
-        child->release();
-    chilren.clear();
-
     pipelineCreateInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
     pipelineCreateInfo.flags = VK_PIPELINE_CREATE_ALLOW_DERIVATIVES_BIT;
 
@@ -172,11 +154,23 @@ bool VK_PipelineImpl::create()
     VkPipelineViewportStateCreateInfo viewportState{};
     viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
 
-    auto viewports = getViewports();
-    viewportState.viewportCount = viewports.getViewportCount();
-    viewportState.pViewports = viewports.getViewportData();
-    viewportState.scissorCount = viewports.getViewportCount();
-    viewportState.pScissors = viewports.getScissorData();
+    auto swapSize = context->getSwapChainExtent();
+    VkViewport viewport{};
+    viewport.x = 0.0f;
+    viewport.y = 0.0f;
+    viewport.width = (float) swapSize.width;
+    viewport.height = (float) swapSize.height;
+    viewport.minDepth = 0.0f;
+    viewport.maxDepth = 1.0f;
+
+    VkRect2D scissor{};
+    scissor.offset = {0, 0};
+    scissor.extent = swapSize;
+
+    viewportState.viewportCount = 1;
+    viewportState.pViewports = &viewport;
+    viewportState.scissorCount = 1;
+    viewportState.pScissors = &scissor;
     pipelineCreateInfo.pViewportState = &viewportState;
 
     auto rasterizationStateCreateInfo = getRasterizationStateCreateInfo();
@@ -229,9 +223,10 @@ VK_Pipeline *VK_PipelineImpl::fork(VK_ShaderSet *shaderSet)
     }
 
     if(!shaderSet)
-        shaderSet = this->getShaderSet();
+        shaderSet = getShaderSet();
     auto child = new VK_PipelineDeriveImpl(context, shaderSet, this);
-    chilren.push_back(child);
+    //chilren.push_back(child);
+    context->addPipeline(child);
     return child;
 }
 
@@ -252,16 +247,10 @@ void VK_PipelineImpl::render(VkCommandBuffer command)
 
     for(auto buffer : buffers)
         buffer->render(command);
-
-    for(auto child : chilren)
-        child->render(command);
 }
 
 void VK_PipelineImpl::release()
 {
-    for(auto child : chilren)
-        child->release();
-    chilren.clear();
     vkDestroyPipeline(context->getDevice(), pipeline, context->getAllocation());
 }
 
@@ -274,7 +263,6 @@ void VK_PipelineImpl::prepare()
     initRasterizationStateCreateInfo();
     initDepthStencilStateCreateInfo();
     initColorBlendAttachmentState();
-    initViewport();
 }
 
 void VK_PipelineImpl::initVertexInputStateCreateInfo(VK_ShaderSet * shaderSet)
@@ -370,14 +358,5 @@ void VK_PipelineImpl::initDepthStencilStateCreateInfo()
     createInfo.front = createInfo.back;
 
     setDepthStencilStateCreateInfo(createInfo);
-}
-
-void VK_PipelineImpl::initViewport()
-{
-    auto extent = context->getSwapChainExtent();
-    auto viewport = VK_Viewports::createViewport(extent.width, extent.height);
-    VK_Viewports vp;
-    vp.addViewport(viewport);
-    setViewports(vp);
 }
 

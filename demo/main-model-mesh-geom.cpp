@@ -7,10 +7,13 @@
 #include "VK_Context.h"
 #include "VK_Image.h"
 #include "VK_Texture.h"
+#include "VK_Pipeline.h"
+#include "VK_DynamicState.h"
 
 using namespace std;
 
 VK_Context *context = nullptr;
+VK_Pipeline* pipeline = nullptr;
 
 uint32_t updateUniformBufferData(char *&data, uint32_t size)
 {
@@ -31,10 +34,7 @@ uint32_t updateUniformBufferData(char *&data, uint32_t size)
 
 void onFrameSizeChanged(int width, int height)
 {
-    auto vp = VK_Viewports::createViewport(width, height);
-    VK_Viewports vps;
-    vps.addViewport(vp);
-    context->setViewports(vps);
+    pipeline->getDynamicState()->applyDynamicViewport({0, 0, (float)width, (float)height, 0, 1});
 }
 
 int main()
@@ -78,17 +78,20 @@ int main()
     ubo->setWriteDataCallback(updateUniformBufferData);
     context->addUniformBuffer(ubo);
 
-    auto buffer = context->createVertexBuffer("../model/pug.obj", true);
-    context->addBuffer(buffer);
-
     context->initVulkanContext();
 
-    auto rasterCreateInfo = context->getPipelineRasterizationStateCreateInfo();
+    pipeline = context->createPipeline();
+
+    auto rasterCreateInfo = pipeline->getRasterizationStateCreateInfo();
     rasterCreateInfo.polygonMode = VK_POLYGON_MODE_FILL;
+    pipeline->setRasterizationStateCreateInfo(rasterCreateInfo);
 
-    context->setPipelineRasterizationStateCreateInfo(rasterCreateInfo);
+    pipeline->setRasterizationStateCreateInfo(rasterCreateInfo);
+    pipeline->create();
 
-    context->initPipeline();
+    auto buffer = context->createVertexBuffer("../model/pug.obj", true);
+    pipeline->addRenderBuffer(buffer);
+
     context->createCommandBuffers();
 
     context->run();

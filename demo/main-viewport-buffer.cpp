@@ -5,6 +5,8 @@
 #include <glm/gtx/transform.hpp>
 #include "VK_UniformBuffer.h"
 #include "VK_Context.h"
+#include "VK_Pipeline.h"
+#include "VK_DynamicState.h"
 
 using namespace std;
 
@@ -20,9 +22,7 @@ const std::vector<uint32_t> indices = {
 };
 
 VK_Context *context = nullptr;
-
-VK_Viewports viewports;
-VK_Viewports newViewports;
+VK_Pipeline* pipeline = nullptr;
 
 void onMouseButtonCallback(int button, int action, int mods)
 {
@@ -31,32 +31,16 @@ void onMouseButtonCallback(int button, int action, int mods)
 
     auto size = context->getSwapChainExtent();
 
-    auto vp1 = VK_Viewports::createViewport(size.width >> 1, size.height);
-    auto vp2 = VK_Viewports::createViewport(size.width >> 1, size.height);
-
-    newViewports.clear();
-
-    newViewports.addViewport(vp1);
-    vp2.x = vp1.width;
-    newViewports.addViewport(vp2);
-
-    auto scissor2 = VK_Viewports::createScissor(size.width >> 1, size.height);
-    scissor2.offset.x = size.width * 0.25f;
-    newViewports.setScissor(0, scissor2);
-
     if (action) {
-        context->setViewports(viewports);
+        pipeline->getDynamicState()->applyDynamicViewport({0, 0, (float)size.width * 0.5f, (float)size.height, 0, 1});
     } else {
-        context->setViewports(newViewports);
+        pipeline->getDynamicState()->applyDynamicViewport({0, 0, (float)size.width, (float)size.height, 0, 1});
     }
 }
 
 void onFrameSizeChanged(int width, int height)
 {
-    auto vp = VK_Viewports::createViewport(width, height);
-    VK_Viewports vps;
-    vps.addViewport(vp);
-    context->setViewports(vps);
+    pipeline->getDynamicState()->applyDynamicViewport({0, 0, (float)width, (float)height, 0, 1});
 }
 
 int main()
@@ -92,12 +76,13 @@ int main()
     }
 
     context->initVulkanContext();
-    context->initPipeline();
-
-    viewports = context->getViewports();
+    pipeline = context->createPipeline();
+    pipeline->getDynamicState()->addDynamicState(VK_DYNAMIC_STATE_VIEWPORT);
+    pipeline->create();
+    pipeline->getDynamicState()->applyDynamicViewport({0, 0, 640.0f, 480.0f, 0, 1});
 
     auto buffer = context->createVertexBuffer(vertices, indices);
-    context->addBuffer(buffer);
+    pipeline->addRenderBuffer(buffer);
 
     context->createCommandBuffers();
 

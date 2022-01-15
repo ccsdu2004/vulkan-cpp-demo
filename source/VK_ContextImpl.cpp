@@ -24,12 +24,10 @@ VK_ContextImpl::VK_ContextImpl(const VK_ContextConfig &config):
 {
     glfwInit();
     vkAllocator = new VK_Allocator();
-    vkDynamicState = new VK_DynamicStateImpl();
 }
 
 VK_ContextImpl::~VK_ContextImpl()
 {
-    vkDynamicState->release();
     glfwTerminate();
 }
 
@@ -80,9 +78,31 @@ bool VK_ContextImpl::initVulkanDevice(const VK_Config &config)
     return createInstance() &&
            createSurface() &&
            pickPhysicalDevice() &&
-           createLogicalDevice() && createCommandPool() &&
+           createLogicalDevice() &&
+           createCommandPool() &&
            createSwapChain() &&
-           createSwapChainImageViews();
+           createSwapChainImageViews() &&
+           createPipelineCache();
+}
+
+VkDevice VK_ContextImpl::getDevice() const
+{
+    return device;
+}
+
+VK_PipelineCache *VK_ContextImpl::getPipelineCache() const
+{
+    return vkPipelineCache;
+}
+
+VkPhysicalDevice VK_ContextImpl::getPhysicalDevice() const
+{
+    return physicalDevice;
+}
+
+VkSampleCountFlagBits VK_ContextImpl::getSampleCountFlagBits() const
+{
+    return msaaSamples;
 }
 
 bool VK_ContextImpl::initVulkanContext()
@@ -92,12 +112,10 @@ bool VK_ContextImpl::initVulkanContext()
         return false;
     }
 
-    vkPipelineCache = new VK_PipelineCacheImpl(device, vkAllocator->getAllocator(), deviceProperties);
-    vkPipelineCache->create(vkConfig.pipelineCacheFile, appConfig.debug);
-
     createRenderPass();
 
     createDescriptorSetLayout();
+    createPipleLayout();
 
     createColorResources();
     createDepthResources();
@@ -109,18 +127,30 @@ bool VK_ContextImpl::initVulkanContext()
     createSyncObjects();
 
     initClearColorAndDepthStencil();
-    initColorBlendAttachmentState();
-    initRasterCreateInfo();
-    initDepthStencilStateCreateInfo();
-    initInputAssemblyStateCreateInfo();
-    initViewport();
     return true;
 }
 
-bool VK_ContextImpl::initPipeline()
+VkRenderPass VK_ContextImpl::getRenderPass() const
 {
-    createGraphicsPipeline();
-    return true;
+    return renderPass;
+}
+
+VkPipelineLayout VK_ContextImpl::getPipelineLayout() const
+{
+    return pipelineLayout;
+}
+
+VK_Pipeline *VK_ContextImpl::createPipeline()
+{
+    auto pipeline = new VK_PipelineImpl(this, vkBaseShaderSet);
+    pipelines.push_back(pipeline);
+    return pipeline;
+}
+
+void VK_ContextImpl::addPipeline(VK_PipelineImpl *pipeline)
+{
+    if(pipeline)
+        pipelines.push_back(pipeline);
 }
 
 bool VK_ContextImpl::run()
@@ -144,24 +174,6 @@ VkExtent2D VK_ContextImpl::getSwapChainExtent() const
     return vkSwapChainExtent;
 }
 
-VK_DynamicState *VK_ContextImpl::getDynamicState() const
-{
-    return vkDynamicState;
-}
-
-VK_Viewports VK_ContextImpl::getViewports() const
-{
-    return vkViewports;
-}
-
-void VK_ContextImpl::setViewports(const VK_Viewports &viewports)
-{
-    if (vkViewports != viewports) {
-        vkViewports = viewports;
-        vkNeedUpdateSwapChain = true;
-    }
-}
-
 void VK_ContextImpl::setClearColor(float r, float g, float b, float a)
 {
     vkClearValue.color.float32[0] = std::clamp<float>(r, 0.0f, 1.0f);
@@ -169,7 +181,7 @@ void VK_ContextImpl::setClearColor(float r, float g, float b, float a)
     vkClearValue.color.float32[2] = std::clamp<float>(b, 0.0f, 1.0f);
     vkClearValue.color.float32[3] = std::clamp<float>(a, 0.0f, 1.0f);
 
-    vkNeedUpdateSwapChain = true;
+    needUpdateSwapChain = true;
 }
 
 void VK_ContextImpl::setClearDepthStencil(float depth, uint32_t stencil)
@@ -177,100 +189,12 @@ void VK_ContextImpl::setClearDepthStencil(float depth, uint32_t stencil)
     vkClearValue.depthStencil.depth = std::clamp<float>(depth, 0.0f, 1.0f);
     vkClearValue.depthStencil.stencil = stencil;
 
-    vkNeedUpdateSwapChain = true;
+    needUpdateSwapChain = true;
 }
 
 void VK_ContextImpl::setLogicalDeviceFeatures(const VkPhysicalDeviceFeatures &features)
 {
     logicalFeatures = features;
-}
-
-VkPipelineColorBlendAttachmentState VK_ContextImpl::getColorBlendAttachmentState()
-{
-    return vkColorBlendAttachment;
-}
-
-void VK_ContextImpl::setColorBlendAttachmentState(const VkPipelineColorBlendAttachmentState &state)
-{
-    int size = sizeof(VkPipelineColorBlendAttachmentState);
-    if (memcmp(&vkColorBlendAttachment, &state, size)) {
-        vkColorBlendAttachment = state;
-        vkNeedUpdateSwapChain = true;
-    }
-}
-
-VkPipelineInputAssemblyStateCreateInfo VK_ContextImpl::getInputAssemblyStateCreateInfo() const
-{
-    return inputAssemblyStateCreateInfo;
-}
-
-void VK_ContextImpl::setInputAssemblyStateCreateInfo(const VkPipelineInputAssemblyStateCreateInfo
-        &createInfo)
-{
-    inputAssemblyStateCreateInfo = createInfo;
-}
-
-VkPipelineRasterizationStateCreateInfo VK_ContextImpl::getPipelineRasterizationStateCreateInfo()
-const
-{
-    return vkPipelineRasterizationStateCreateInfo;
-}
-
-void VK_ContextImpl::setPipelineRasterizationStateCreateInfo(const
-        VkPipelineRasterizationStateCreateInfo &createInfo)
-{
-    vkPipelineRasterizationStateCreateInfo = createInfo;
-    vkNeedUpdateSwapChain = true;
-}
-
-VkPipelineDepthStencilStateCreateInfo VK_ContextImpl::getPipelineDepthStencilStateCreateInfo()const
-{
-    return vkPipelineDepthStencilStateCreateInfo;
-}
-
-void VK_ContextImpl::setPipelineDepthStencilStateCreateInfo(const
-        VkPipelineDepthStencilStateCreateInfo &createInfo)
-{
-    vkPipelineDepthStencilStateCreateInfo = createInfo;
-    vkNeedUpdateSwapChain = true;
-}
-
-VkPipelineTessellationStateCreateInfo VK_ContextImpl::createPipelineTessellationStateCreateInfo()
-{
-    VkPipelineTessellationStateCreateInfo createInfo;
-    createInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_TESSELLATION_STATE_CREATE_INFO;
-    createInfo.patchControlPoints = 32;
-    createInfo.flags = 0;
-    createInfo.pNext = nullptr;
-    return createInfo;
-}
-
-VkPipelineTessellationStateCreateInfo VK_ContextImpl::getVkPipelineTessellationStateCreateInfo()
-{
-    return vkPipelineTessellationStateCreateInfo.value();
-}
-
-void VK_ContextImpl::setPipelineTessellationStateCreateInfo(const
-        VkPipelineTessellationStateCreateInfo &createInfo)
-{
-    vkPipelineTessellationStateCreateInfo = std::optional<VkPipelineTessellationStateCreateInfo>
-                                            (createInfo);
-}
-
-void VK_ContextImpl::addDynamicState(VkDynamicState dynamicState)
-{
-    vkDynamicStates.push_back(dynamicState);
-}
-
-VkPipelineDynamicStateCreateInfo VK_ContextImpl::createDynamicStateCreateInfo(
-    VkPipelineDynamicStateCreateFlags flags)
-{
-    VkPipelineDynamicStateCreateInfo pipelineDynamicStateCreateInfo{};
-    pipelineDynamicStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-    pipelineDynamicStateCreateInfo.pDynamicStates = vkDynamicStates.data();
-    pipelineDynamicStateCreateInfo.dynamicStateCount = static_cast<uint32_t>(vkDynamicStates.size());
-    pipelineDynamicStateCreateInfo.flags = flags;
-    return pipelineDynamicStateCreateInfo;
 }
 
 void VK_ContextImpl::framebufferResizeCallback(GLFWwindow *window, int width, int height)
@@ -303,7 +227,9 @@ void VK_ContextImpl::cleanupSwapChain()
     vkFreeCommandBuffers(device, commandPool, static_cast<uint32_t>(commandBuffers.size()),
                          commandBuffers.data());
 
-    vkDestroyPipeline(device, graphicsPipeline, getAllocation());
+    for(auto pipeline : pipelines)
+        pipeline->release();
+
     vkDestroyPipelineLayout(device, pipelineLayout, getAllocation());
     vkDestroyRenderPass(device, renderPass, getAllocation());
 
@@ -322,8 +248,6 @@ void VK_ContextImpl::cleanupSwapChain()
 void VK_ContextImpl::cleanup()
 {
     vkBaseShaderSet->release();
-
-    //cleanVulkanObjectContainer(vkShaders);
 
     cleanVulkanObjectContainer(vkBuffers);
 
@@ -383,12 +307,11 @@ void VK_ContextImpl::recreateSwapChain()
     vkDeviceWaitIdle(device);
 
     cleanupSwapChain();
-
     createSwapChain();
     createSwapChainImageViews();
     createRenderPass();
+    createPipleLayout();
     createGraphicsPipeline();
-
     createColorResources();
     createDepthResources();
     createFramebuffers();
@@ -605,6 +528,12 @@ bool VK_ContextImpl::createSwapChainImageViews()
     return true;
 }
 
+bool VK_ContextImpl::createPipelineCache()
+{
+    vkPipelineCache = new VK_PipelineCacheImpl(device, vkAllocator->getAllocator(), deviceProperties);
+    return vkPipelineCache->create(vkConfig.pipelineCacheFile, appConfig.debug);
+}
+
 void VK_ContextImpl::createRenderPass()
 {
     VkAttachmentDescription colorAttachment{};
@@ -698,67 +627,21 @@ bool VK_ContextImpl::createDescriptorSetLayout()
     return true;
 }
 
-bool VK_ContextImpl::isValidPipelineCacheData(const std::string &filename, const char *buffer,
-        uint32_t size)
+bool VK_ContextImpl::createPipleLayout()
 {
-    if (size > 32) {
-        uint32_t header = 0;
-        uint32_t version = 0;
-        uint32_t vendor = 0;
-        uint32_t deviceID = 0;
-        uint8_t pipelineCacheUUID[VK_UUID_SIZE] = {};
+    VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
+    pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+    pipelineLayoutInfo.pNext = nullptr;
+    pipelineLayoutInfo.setLayoutCount = 1;
+    pipelineLayoutInfo.pSetLayouts = &descriptorSetLayout;
+    pipelineLayoutInfo.pushConstantRangeCount = 0;
+    pipelineLayoutInfo.pPushConstantRanges = nullptr;
 
-        memcpy(&header, (uint8_t *)buffer + 0, 4);
-        memcpy(&version, (uint8_t *)buffer + 4, 4);
-        memcpy(&vendor, (uint8_t *)buffer + 8, 4);
-        memcpy(&deviceID, (uint8_t *)buffer + 12, 4);
-        memcpy(pipelineCacheUUID, (uint8_t *)buffer + 16, VK_UUID_SIZE);
-
-        if (header <= 0) {
-            std::cerr << "bad pipeline cache data header length in " << vkConfig.pipelineCacheFile << std::endl;
-            return false;
-        }
-
-        if (version != VK_PIPELINE_CACHE_HEADER_VERSION_ONE) {
-            std::cerr << "unsupported cache header version in " << filename << std::endl;
-            std::cerr << "cache contains: 0x" << std::hex << version << std::endl;
-        }
-
-        if (vendor != deviceProperties.vendorID) {
-            std::cerr << "vendor id mismatch in " << filename << std::endl;
-            std::cerr << "cache contains: 0x" << std::hex << vendor << std::endl;
-            std::cerr << "driver expects: 0x" << deviceProperties.vendorID << std::endl;
-            return false;
-        }
-
-        if (deviceID != deviceProperties.deviceID) {
-            std::cerr << "device id mismatch in " << filename << std::endl;
-            std::cerr << "cache contains: 0x" << std::hex << deviceID << std::endl;
-            std::cerr << "driver expects: 0x" << deviceProperties.deviceID << std::endl;
-            return false;
-        }
-
-        if (memcmp(pipelineCacheUUID, deviceProperties.pipelineCacheUUID, sizeof(pipelineCacheUUID)) != 0) {
-            std::cerr << "uuid mismatch in " << filename << std::endl;
-            std::cerr << "cache contains: " << std::endl;
-
-            auto fn = [](uint8_t *uuid) {
-                for (int i = 0; i < 16; i++) {
-                    std::cout << (int)uuid[i] << " ";
-                    if (i % 4 == 3)
-                        std::cerr << std::endl;
-                }
-                std::cerr << std::endl;
-            };
-            fn(pipelineCacheUUID);
-            std::cerr << "driver expects:" << std::endl;
-            fn(deviceProperties.pipelineCacheUUID);
-            return false;
-        }
-
-        return true;
+    if (vkCreatePipelineLayout(device, &pipelineLayoutInfo, getAllocation(), &pipelineLayout) != VK_SUCCESS) {
+        std::cerr << "failed to create pipeline layout!" << std::endl;
+        return false;
     }
-    return false;
+    return true;
 }
 
 VK_ShaderSet *VK_ContextImpl::createShaderSet()
@@ -777,6 +660,7 @@ VK_Buffer *VK_ContextImpl::createVertexBuffer(const std::vector<float> &vertices
 {
     auto vertexBuffer = new VK_VertexBuffer(this, device);
     vertexBuffer->create(vertices, count, indices);
+    vkBuffers.push_back(vertexBuffer);
     return vertexBuffer;
 }
 
@@ -785,6 +669,7 @@ VK_Buffer *VK_ContextImpl::createVertexBuffer(const std::vector<VK_Vertex> &vert
 {
     auto vertexBuffer = new VK_VertexBuffer(this, device);
     vertexBuffer->create(vertices, indices);
+    vkBuffers.push_back(vertexBuffer);
     return vertexBuffer;
 }
 
@@ -800,6 +685,7 @@ VK_Buffer *VK_ContextImpl::createVertexBuffer(const std::string &filename, bool 
     if (!data.empty()) {
         loader->create(data[0], 8, std::vector<uint32_t>());
     }
+    vkBuffers.push_back(loader);
     return loader;
 }
 
@@ -948,83 +834,8 @@ void VK_ContextImpl::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDevice
 
 bool VK_ContextImpl::createGraphicsPipeline()
 {
-    VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
-    vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-    vertexInputInfo.pNext = nullptr;
-
-    vertexInputInfo.vertexBindingDescriptionCount = 1;
-    vertexInputInfo.vertexAttributeDescriptionCount = vkBaseShaderSet->getAttributeDescriptionCount();
-    vertexInputInfo.pVertexBindingDescriptions = vkBaseShaderSet->getBindingDescription();
-    vertexInputInfo.pVertexAttributeDescriptions = vkBaseShaderSet->getAttributeDescriptionData();
-
-    VkPipelineViewportStateCreateInfo viewportState{};
-    viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
-    viewportState.viewportCount = vkViewports.getViewportCount();
-    viewportState.pViewports = vkViewports.getViewportData();
-    viewportState.scissorCount = vkViewports.getViewportCount();
-    viewportState.pScissors = vkViewports.getScissorData();
-
-    VkPipelineMultisampleStateCreateInfo multisampling{};
-    multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-    multisampling.sampleShadingEnable = VK_FALSE;
-    multisampling.rasterizationSamples = msaaSamples;
-
-    VkPipelineColorBlendStateCreateInfo colorBlending{};
-    colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
-    colorBlending.logicOpEnable = VK_FALSE;
-    colorBlending.logicOp = VK_LOGIC_OP_COPY;
-    colorBlending.attachmentCount = 1;
-    colorBlending.pAttachments = &vkColorBlendAttachment;
-    colorBlending.blendConstants[0] = 0.0f;
-    colorBlending.blendConstants[1] = 0.0f;
-    colorBlending.blendConstants[2] = 0.0f;
-    colorBlending.blendConstants[3] = 0.0f;
-
-    VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
-    pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    pipelineLayoutInfo.pNext = nullptr;
-    pipelineLayoutInfo.setLayoutCount = 1;
-    pipelineLayoutInfo.pSetLayouts = &descriptorSetLayout;
-    pipelineLayoutInfo.pushConstantRangeCount = 0;
-    pipelineLayoutInfo.pPushConstantRanges = nullptr;
-
-    if (vkCreatePipelineLayout(device, &pipelineLayoutInfo, getAllocation(), &pipelineLayout) != VK_SUCCESS) {
-        std::cerr << "failed to create pipeline layout!" << std::endl;
-        return false;
-    }
-
-    VkGraphicsPipelineCreateInfo pipelineInfo{};
-    pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-    pipelineInfo.stageCount = vkBaseShaderSet->getCreateInfoCount();
-    pipelineInfo.pStages = vkBaseShaderSet->getCreateInfoData();
-    pipelineInfo.pVertexInputState = &vertexInputInfo;
-
-    pipelineInfo.pInputAssemblyState = &inputAssemblyStateCreateInfo;
-    pipelineInfo.pViewportState = &viewportState;
-    pipelineInfo.pRasterizationState = &vkPipelineRasterizationStateCreateInfo;
-    pipelineInfo.pDepthStencilState = &vkPipelineDepthStencilStateCreateInfo;
-    pipelineInfo.pMultisampleState = &multisampling;
-    pipelineInfo.pColorBlendState = &colorBlending;
-
-    if (!vkPipelineTessellationStateCreateInfo.has_value())
-        pipelineInfo.pTessellationState = nullptr;
-    else
-        pipelineInfo.pTessellationState = &vkPipelineTessellationStateCreateInfo.value();
-
-    auto dynamicState = createDynamicStateCreateInfo();
-    pipelineInfo.pDynamicState = &dynamicState;
-    pipelineInfo.layout = pipelineLayout;
-    pipelineInfo.renderPass = renderPass;
-    pipelineInfo.subpass = 0;
-    pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
-    pipelineInfo.pNext = nullptr;
-
-    if (vkCreateGraphicsPipelines(device, vkPipelineCache->getPipelineCache(), 1, &pipelineInfo, getAllocation(),
-                                  &graphicsPipeline) != VK_SUCCESS) {
-        std::cerr << "failed to create graphics pipeline!" << std::endl;
-        return false;
-    }
-
+    for(auto pipeline : pipelines)
+        pipeline->create();
     return true;
 }
 
@@ -1232,15 +1043,15 @@ bool VK_ContextImpl::createCommandBuffers()
 
         vkCmdBeginRenderPass(commandBuffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-        vkDynamicState->apply(commandBuffers[i]);
-
-        vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
         vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1,
                                 &descriptorSets[i], 0,
                                 nullptr);
 
-        for (auto itr = vkBuffers.begin(); itr != vkBuffers.end(); itr++)
-            (*itr)->render(commandBuffers[i]);
+        for(auto pipeline : pipelines)
+            pipeline->render(commandBuffers[i]);
+
+        // for (auto itr = vkBuffers.begin(); itr != vkBuffers.end(); itr++)
+        //    (*itr)->render(commandBuffers[i]);
 
         vkCmdEndRenderPass(commandBuffers[i]);
 
@@ -1278,9 +1089,11 @@ void VK_ContextImpl::createSyncObjects()
 
 void VK_ContextImpl::drawFrame()
 {
-    if (vkNeedUpdateSwapChain) {
-        recreateSwapChain();
-        vkNeedUpdateSwapChain = false;
+    for(auto pipeline : pipelines) {
+        if (pipeline->needRecreate() || needUpdateSwapChain) {
+            recreateSwapChain();
+            needUpdateSwapChain = false;
+        }
     }
 
     vkWaitForFences(device, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
@@ -1509,63 +1322,6 @@ void VK_ContextImpl::initClearColorAndDepthStencil()
     vkClearValue = {{{0.0f, 0.0f, 0.0f, 0.0f}}};
 }
 
-void VK_ContextImpl::initInputAssemblyStateCreateInfo()
-{
-    inputAssemblyStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-    inputAssemblyStateCreateInfo.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-    inputAssemblyStateCreateInfo.primitiveRestartEnable = VK_FALSE;
-}
-
-void VK_ContextImpl::initColorBlendAttachmentState()
-{
-    vkColorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
-                                            VK_COLOR_COMPONENT_B_BIT |
-                                            VK_COLOR_COMPONENT_A_BIT;
-    vkColorBlendAttachment.blendEnable = VK_FALSE;
-}
-
-void VK_ContextImpl::initRasterCreateInfo()
-{
-    vkPipelineRasterizationStateCreateInfo.sType =
-        VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
-    vkPipelineRasterizationStateCreateInfo.depthClampEnable = VK_FALSE;
-    vkPipelineRasterizationStateCreateInfo.rasterizerDiscardEnable = VK_FALSE;
-    vkPipelineRasterizationStateCreateInfo.polygonMode = VK_POLYGON_MODE_FILL;
-    vkPipelineRasterizationStateCreateInfo.lineWidth = 1.0f;
-    vkPipelineRasterizationStateCreateInfo.cullMode = VK_CULL_MODE_BACK_BIT;
-    vkPipelineRasterizationStateCreateInfo.frontFace = VK_FRONT_FACE_CLOCKWISE;
-    vkPipelineRasterizationStateCreateInfo.depthBiasEnable = VK_FALSE;
-}
-
-void VK_ContextImpl::initDepthStencilStateCreateInfo()
-{
-    vkPipelineDepthStencilStateCreateInfo.sType =
-        VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-    vkPipelineDepthStencilStateCreateInfo.pNext = NULL;
-    vkPipelineDepthStencilStateCreateInfo.flags = 0;
-    vkPipelineDepthStencilStateCreateInfo.depthTestEnable = VK_TRUE;
-    vkPipelineDepthStencilStateCreateInfo.depthWriteEnable = VK_TRUE;
-    vkPipelineDepthStencilStateCreateInfo.depthCompareOp = VK_COMPARE_OP_LESS;
-    vkPipelineDepthStencilStateCreateInfo.depthBoundsTestEnable = VK_FALSE;
-    vkPipelineDepthStencilStateCreateInfo.minDepthBounds = 0.0f;
-    vkPipelineDepthStencilStateCreateInfo.maxDepthBounds = 1.0f;
-    vkPipelineDepthStencilStateCreateInfo.stencilTestEnable = VK_FALSE;
-    vkPipelineDepthStencilStateCreateInfo.back.failOp = VK_STENCIL_OP_KEEP;
-    vkPipelineDepthStencilStateCreateInfo.back.passOp = VK_STENCIL_OP_KEEP;
-    vkPipelineDepthStencilStateCreateInfo.back.compareOp = VK_COMPARE_OP_ALWAYS;
-    vkPipelineDepthStencilStateCreateInfo.back.compareMask = 0;
-    vkPipelineDepthStencilStateCreateInfo.back.reference = 0;
-    vkPipelineDepthStencilStateCreateInfo.back.depthFailOp = VK_STENCIL_OP_KEEP;
-    vkPipelineDepthStencilStateCreateInfo.back.writeMask = 0;
-    vkPipelineDepthStencilStateCreateInfo.front = vkPipelineDepthStencilStateCreateInfo.back;
-}
-
-void VK_ContextImpl::initViewport()
-{
-    vkViewports.addViewport(VK_Viewports::createViewport(vkSwapChainExtent.width,
-                            vkSwapChainExtent.height));
-}
-
 uint32_t VK_ContextImpl::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties)
 {
     VkPhysicalDeviceMemoryProperties memProperties;
@@ -1580,89 +1336,6 @@ uint32_t VK_ContextImpl::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFla
 
     std::cerr << "failed to find suitable memory type!" << std::endl;
     return ~0;
-}
-
-void VK_ContextImpl::transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout,
-        VkImageLayout newLayout, uint32_t mipLevels)
-{
-    VkCommandBuffer commandBuffer = beginSingleTimeCommands();
-
-    VkImageMemoryBarrier barrier{};
-    barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-    barrier.oldLayout = oldLayout;
-    barrier.newLayout = newLayout;
-    barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    barrier.image = image;
-    barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    barrier.subresourceRange.baseMipLevel = 0;
-    barrier.subresourceRange.levelCount = mipLevels;
-    barrier.subresourceRange.baseArrayLayer = 0;
-    barrier.subresourceRange.layerCount = 1;
-
-    VkPipelineStageFlags sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-    VkPipelineStageFlags destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-
-    if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) {
-        barrier.srcAccessMask = 0;
-        barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-
-        sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-        destinationStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
-    } else if (oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
-               && newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
-        barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-        barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-
-        sourceStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
-        destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-    } else if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED
-               && newLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL) {
-        barrier.srcAccessMask = 0;
-        barrier.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT |
-                                VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-
-        sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-        destinationStage = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-    } else {
-        std::cerr << "unsupported layout transition!" << std::endl;
-    }
-
-    vkCmdPipelineBarrier(
-        commandBuffer,
-        sourceStage, destinationStage,
-        0,
-        0, nullptr,
-        0, nullptr,
-        1, &barrier
-    );
-
-    endSingleTimeCommands(commandBuffer);
-}
-
-void VK_ContextImpl::copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width,
-                                       uint32_t height)
-{
-    VkCommandBuffer commandBuffer = beginSingleTimeCommands();
-
-    VkBufferImageCopy region{};
-    region.bufferOffset = 0;
-    region.bufferRowLength = 0;
-    region.bufferImageHeight = 0;
-    region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    region.imageSubresource.mipLevel = 0;
-    region.imageSubresource.baseArrayLayer = 0;
-    region.imageSubresource.layerCount = 1;
-    region.imageOffset = {0, 0, 0};
-    region.imageExtent = {
-        width,
-        height,
-        1
-    };
-
-    vkCmdCopyBufferToImage(commandBuffer, buffer, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1,
-                           &region);
-    endSingleTimeCommands(commandBuffer);
 }
 
 VkCommandBuffer VK_ContextImpl::beginSingleTimeCommands()
@@ -1726,95 +1399,4 @@ VkSampleCountFlagBits VK_ContextImpl::getMaxUsableSampleCount()
     }
 
     return VK_SAMPLE_COUNT_1_BIT;
-}
-
-void VK_ContextImpl::generateMipmaps(VkImage image, VkFormat imageFormat, int32_t texWidth,
-                                     int32_t texHeight,
-                                     uint32_t mipLevels)
-{
-    VkFormatProperties formatProperties;
-    vkGetPhysicalDeviceFormatProperties(physicalDevice, imageFormat, &formatProperties);
-
-    if (!(formatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT)) {
-        std::cerr << "texture image format does not support linear blitting!" << std::endl;
-    }
-
-    VkCommandBuffer commandBuffer = beginSingleTimeCommands();
-
-    VkImageMemoryBarrier barrier = {};
-    barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-    barrier.image = image;
-    barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    barrier.subresourceRange.baseArrayLayer = 0;
-    barrier.subresourceRange.layerCount = 1;
-    barrier.subresourceRange.levelCount = 1;
-
-    int32_t mipWidth = texWidth;
-    int32_t mipHeight = texHeight;
-
-    for (uint32_t i = 1; i < mipLevels; i++) {
-        barrier.subresourceRange.baseMipLevel = i - 1;
-        barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-        barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-        barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-        barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
-
-        vkCmdPipelineBarrier(commandBuffer,
-                             VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0,
-                             0, nullptr,
-                             0, nullptr,
-                             1, &barrier);
-
-        VkImageBlit blit = {};
-        blit.srcOffsets[0] = {0, 0, 0};
-        blit.srcOffsets[1] = {mipWidth, mipHeight, 1};
-        blit.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-        blit.srcSubresource.mipLevel = i - 1;
-        blit.srcSubresource.baseArrayLayer = 0;
-        blit.srcSubresource.layerCount = 1;
-        blit.dstOffsets[0] = {0, 0, 0};
-        blit.dstOffsets[1] = { mipWidth > 1 ? mipWidth / 2 : 1, mipHeight > 1 ? mipHeight / 2 : 1, 1 };
-        blit.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-        blit.dstSubresource.mipLevel = i;
-        blit.dstSubresource.baseArrayLayer = 0;
-        blit.dstSubresource.layerCount = 1;
-
-        vkCmdBlitImage(commandBuffer,
-                       image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                       image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                       1, &blit,
-                       VK_FILTER_LINEAR);
-
-        barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-        barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        barrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
-        barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-
-        vkCmdPipelineBarrier(commandBuffer,
-                             VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0,
-                             0, nullptr,
-                             0, nullptr,
-                             1, &barrier);
-
-        if (mipWidth > 1)
-            mipWidth /= 2;
-        if (mipHeight > 1)
-            mipHeight /= 2;
-    }
-
-    barrier.subresourceRange.baseMipLevel = mipLevels - 1;
-    barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-    barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-    barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-
-    vkCmdPipelineBarrier(commandBuffer,
-                         VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0,
-                         0, nullptr,
-                         0, nullptr,
-                         1, &barrier);
-
-    endSingleTimeCommands(commandBuffer);
 }

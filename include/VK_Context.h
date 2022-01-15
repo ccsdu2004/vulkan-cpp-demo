@@ -4,7 +4,6 @@
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 #include <VK_ShaderSet.h>
-#include <VK_Viewports.h>
 #include <VK_Texture.h>
 #include <VK_Buffer.h>
 #include <VK_ImageView.h>
@@ -14,7 +13,9 @@ class VK_UniformBuffer;
 class VK_Image;
 class VK_Texture;
 class VK_Context;
+class VK_PipelineCache;
 class VK_DynamicState;
+class VK_Pipeline;
 class VulKanAppData;
 
 class VK_Context : public VK_Deleter
@@ -31,39 +32,21 @@ public:
     virtual VkAllocationCallbacks* getAllocation() = 0;
 
     virtual bool initVulkanDevice(const VK_Config &config) = 0;
+    virtual VkDevice getDevice()const = 0;
+    virtual VK_PipelineCache *getPipelineCache()const = 0;
+    virtual VkPhysicalDevice getPhysicalDevice()const = 0;
+
     virtual bool initVulkanContext() = 0;
-    virtual bool initPipeline() = 0;
+    virtual VK_Pipeline* createPipeline() = 0;
     virtual bool createCommandBuffers() = 0;
     virtual bool run() = 0;
 public:
     virtual VkExtent2D getSwapChainExtent()const = 0;
-    virtual VK_DynamicState* getDynamicState()const = 0;
-
-    virtual VK_Viewports getViewports()const = 0;
-    virtual void setViewports(const VK_Viewports &viewport) = 0;
 
     virtual void setClearColor(float r, float f, float b, float a) = 0;
     virtual void setClearDepthStencil(float depth, uint32_t stencil) = 0;
 
     virtual void setLogicalDeviceFeatures(const VkPhysicalDeviceFeatures &features) = 0;
-
-    virtual VkPipelineColorBlendAttachmentState getColorBlendAttachmentState() = 0;
-    virtual void setColorBlendAttachmentState(const VkPipelineColorBlendAttachmentState &state) = 0;
-
-    virtual VkPipelineInputAssemblyStateCreateInfo getInputAssemblyStateCreateInfo()const = 0;
-    virtual void setInputAssemblyStateCreateInfo(const VkPipelineInputAssemblyStateCreateInfo& createInfo) = 0;
-
-    virtual VkPipelineRasterizationStateCreateInfo getPipelineRasterizationStateCreateInfo()const = 0;
-    virtual void setPipelineRasterizationStateCreateInfo(const VkPipelineRasterizationStateCreateInfo &createInfo) = 0;
-
-    virtual VkPipelineDepthStencilStateCreateInfo getPipelineDepthStencilStateCreateInfo()const = 0;
-    virtual void setPipelineDepthStencilStateCreateInfo(const VkPipelineDepthStencilStateCreateInfo &createInfo) = 0;
-
-    virtual VkPipelineTessellationStateCreateInfo createPipelineTessellationStateCreateInfo() = 0;
-    virtual VkPipelineTessellationStateCreateInfo getVkPipelineTessellationStateCreateInfo() = 0;
-    virtual void setPipelineTessellationStateCreateInfo(const VkPipelineTessellationStateCreateInfo &createInfo) = 0;
-
-    virtual void addDynamicState(VkDynamicState dynamicState) = 0;
 public:
     virtual VK_ShaderSet *createShaderSet() = 0;
 

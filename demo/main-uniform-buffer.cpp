@@ -5,6 +5,8 @@
 #include <glm/gtx/transform.hpp>
 #include "VK_UniformBuffer.h"
 #include "VK_Context.h"
+#include "VK_Pipeline.h"
+#include "VK_DynamicState.h"
 
 using namespace std;
 
@@ -19,6 +21,7 @@ const std::vector<uint32_t> indices = {
 };
 
 VK_Context *context = nullptr;
+VK_Pipeline* pipeline = nullptr;
 
 uint32_t updateUniformBufferData(char *&data, uint32_t size)
 {
@@ -32,10 +35,7 @@ uint32_t updateUniformBufferData(char *&data, uint32_t size)
 
 void onFrameSizeChanged(int width, int height)
 {
-    auto vp = VK_Viewports::createViewport(width, height);
-    VK_Viewports vps;
-    vps.addViewport(vp);
-    context->setViewports(vps);
+    pipeline->getDynamicState()->applyDynamicViewport({0, 0, (float)width, (float)height, 0, 1});
 }
 
 int main()
@@ -45,7 +45,7 @@ int main()
     config.name = "Uniform Demo";
 
     context = createVkContext(config);
-    context->createWindow(640, 480, true);
+    context->createWindow(480, 480, true);
     context->setOnFrameSizeChanged(onFrameSizeChanged);
 
     VK_Context::VK_Config vkConfig;
@@ -69,15 +69,19 @@ int main()
         return -1;
     }
 
-    auto buffer = context->createVertexBuffer(vertices, 3 + 4, indices);
-    context->addBuffer(buffer);
-
     auto ubo = context->createUniformBuffer(0, sizeof(float) * 16);
     ubo->setWriteDataCallback(updateUniformBufferData);
     context->addUniformBuffer(ubo);
 
     context->initVulkanContext();
-    context->initPipeline();
+    pipeline = context->createPipeline();
+    pipeline->getDynamicState()->addDynamicState(VK_DYNAMIC_STATE_VIEWPORT);
+    pipeline->create();
+    pipeline->getDynamicState()->applyDynamicViewport({0, 0, 480, 480, 0, 1});
+
+    auto buffer = context->createVertexBuffer(vertices, 3 + 4, indices);
+    pipeline->addRenderBuffer(buffer);
+
     context->createCommandBuffers();
 
     context->run();

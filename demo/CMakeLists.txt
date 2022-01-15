@@ -18,6 +18,7 @@ set(DEMOS
     model-mesh-tess
     model-toon
     model-outline
+    model-push-constant
     )
 
 foreach(var IN LISTS DEMOS)

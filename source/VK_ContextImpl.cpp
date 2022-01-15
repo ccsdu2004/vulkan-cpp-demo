@@ -105,6 +105,15 @@ VkSampleCountFlagBits VK_ContextImpl::getSampleCountFlagBits() const
     return msaaSamples;
 }
 
+void VK_ContextImpl::addPushConstant(const VkPushConstantRange &constantRange, const char *data)
+{
+    if(data == nullptr)
+        return;
+
+    pushConstantRange.push_back(constantRange);
+    pushConstantData.push_back(data);
+}
+
 bool VK_ContextImpl::initVulkanContext()
 {
     if(!vkBaseShaderSet) {
@@ -634,8 +643,8 @@ bool VK_ContextImpl::createPipleLayout()
     pipelineLayoutInfo.pNext = nullptr;
     pipelineLayoutInfo.setLayoutCount = 1;
     pipelineLayoutInfo.pSetLayouts = &descriptorSetLayout;
-    pipelineLayoutInfo.pushConstantRangeCount = 0;
-    pipelineLayoutInfo.pPushConstantRanges = nullptr;
+    pipelineLayoutInfo.pushConstantRangeCount = pushConstantRange.size();
+    pipelineLayoutInfo.pPushConstantRanges = pushConstantRange.data();
 
     if (vkCreatePipelineLayout(device, &pipelineLayoutInfo, getAllocation(), &pipelineLayout) != VK_SUCCESS) {
         std::cerr << "failed to create pipeline layout!" << std::endl;
@@ -1047,11 +1056,20 @@ bool VK_ContextImpl::createCommandBuffers()
                                 &descriptorSets[i], 0,
                                 nullptr);
 
+        size_t index = 0;
+        for(auto pushConst : pushConstantRange) {
+            vkCmdPushConstants(
+                commandBuffers[i],
+                pipelineLayout,
+                pushConst.stageFlags,
+                pushConst.offset,
+                pushConst.size,
+                pushConstantData[index]);
+            index ++;
+        }
+
         for(auto pipeline : pipelines)
             pipeline->render(commandBuffers[i]);
-
-        // for (auto itr = vkBuffers.begin(); itr != vkBuffers.end(); itr++)
-        //    (*itr)->render(commandBuffers[i]);
 
         vkCmdEndRenderPass(commandBuffers[i]);
 

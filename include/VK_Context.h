@@ -36,6 +36,7 @@ public:
     virtual VK_PipelineCache *getPipelineCache()const = 0;
     virtual VkPhysicalDevice getPhysicalDevice()const = 0;
 
+    virtual void addPushConstant(const VkPushConstantRange& constantRange, const char* data) = 0;
     virtual bool initVulkanContext() = 0;
     virtual VK_Pipeline* createPipeline() = 0;
     virtual bool createCommandBuffers() = 0;

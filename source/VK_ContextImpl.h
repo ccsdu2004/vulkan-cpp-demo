@@ -59,6 +59,7 @@ public:
     VkPhysicalDevice getPhysicalDevice()const override;
     VkSampleCountFlagBits getSampleCountFlagBits()const;
 
+    void addPushConstant(const VkPushConstantRange& constantRange, const char* data)override;
     bool initVulkanContext()override;
     VkRenderPass getRenderPass()const;
     VkPipelineLayout getPipelineLayout()const;
@@ -196,6 +197,9 @@ private:
     VkDescriptorSetLayout descriptorSetLayout = 0;
 
     VkPipelineLayout pipelineLayout;
+    std::vector<VkPushConstantRange> pushConstantRange;
+    std::vector<const char*> pushConstantData;
+
     VK_PipelineCacheImpl* vkPipelineCache = nullptr;
     std::list<VK_PipelineImpl*> pipelines;
 

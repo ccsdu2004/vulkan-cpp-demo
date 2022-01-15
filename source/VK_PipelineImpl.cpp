@@ -225,7 +225,6 @@ VK_Pipeline *VK_PipelineImpl::fork(VK_ShaderSet *shaderSet)
     if(!shaderSet)
         shaderSet = getShaderSet();
     auto child = new VK_PipelineDeriveImpl(context, shaderSet, this);
-    //chilren.push_back(child);
     context->addPipeline(child);
     return child;
 }

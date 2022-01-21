@@ -19,6 +19,7 @@ set(DEMOS
     model-toon
     model-outline
     model-push-constant
+    model-light
     )
 
 foreach(var IN LISTS DEMOS)

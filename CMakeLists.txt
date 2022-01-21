@@ -47,7 +47,6 @@ add_library(
      source/VK_VertexBuffer.cpp
      source/VK_UniformBufferImpl.h
      source/VK_UniformBufferImpl.cpp
-     source/VK_Viewports.cpp
      source/VK_ImageImpl.cpp
      source/VK_SamplerImpl.cpp
      source/VK_ImageView.cpp

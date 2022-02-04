@@ -22,7 +22,7 @@ const std::vector<uint32_t> indices = {
 };
 
 VK_Context *context = nullptr;
-VK_Pipeline* pipeline = nullptr;
+VK_Pipeline *pipeline = nullptr;
 
 void onMouseButtonCallback(int button, int action, int mods)
 {
@@ -65,8 +65,11 @@ int main()
     shaderSet->addShader("../shader/vertex/vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
     shaderSet->addShader("../shader/vertex/frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 
-    shaderSet->appendAttributeDescription(0, sizeof (float) * 3);
-    shaderSet->appendAttributeDescription(1, sizeof (float) * 4);
+    shaderSet->appendVertexAttributeDescription(0, sizeof (float) * 3, VK_FORMAT_R32G32B32_SFLOAT, 0);
+    shaderSet->appendVertexAttributeDescription(1, sizeof (float) * 4, VK_FORMAT_R32G32B32A32_SFLOAT,
+            sizeof(float) * 3);
+
+    shaderSet->appendVertexInputBindingDescription(7 * sizeof(float), 0, VK_VERTEX_INPUT_RATE_VERTEX);
 
     if (!shaderSet->isValid()) {
         std::cerr << "invalid shaderSet" << std::endl;
@@ -76,7 +79,7 @@ int main()
     }
 
     context->initVulkanContext();
-    pipeline = context->createPipeline();
+    pipeline = context->createPipeline(shaderSet);
     pipeline->getDynamicState()->addDynamicState(VK_DYNAMIC_STATE_VIEWPORT);
     pipeline->create();
     pipeline->getDynamicState()->applyDynamicViewport({0, 0, 640.0f, 480.0f, 0, 1});

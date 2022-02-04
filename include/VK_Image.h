@@ -10,6 +10,8 @@ public:
     virtual int getWidth()const = 0;
     virtual int getHeight()const = 0;
     virtual int getMipLevel()const = 0;
+    virtual void transitionImageLayout(VkImage image, VkImageLayout oldLayout,
+                                       VkImageLayout newLayout, uint32_t mipLevels) = 0;
 };
 
 #endif // VK_IMAGE_HPP

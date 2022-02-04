@@ -7,12 +7,11 @@ class VK_UniformBufferImpl : public VK_UniformBuffer
 {
     friend class VK_ContextImpl;
 public:
-    VK_UniformBufferImpl(VK_ContextImpl* vkContext, VkDevice vkDevice, uint32_t binding, uint32_t bufferSize);
+    VK_UniformBufferImpl(VK_ContextImpl* vkContext, uint32_t binding, uint32_t bufferSize);
     ~VK_UniformBufferImpl();
 public:
     void initBuffer(uint32_t swapImageChainSize)override;
 
-    VkDescriptorBufferInfo createDescriptorBufferInfo(uint32_t index);
     VkWriteDescriptorSet createWriteDescriptorSet(uint32_t index, VkDescriptorSet descriptorSet)const override;
 
     void clearBuffer()override;
@@ -22,7 +21,6 @@ public:
     void update(uint32_t index)override;
 protected:
     VK_ContextImpl* context = nullptr;
-    VkDevice device = nullptr;
     uint32_t bindingId = 0;
     uint32_t bufferSize = 0;
 

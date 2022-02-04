@@ -23,7 +23,7 @@ const std::vector<uint32_t> indices = {
 };
 
 VK_Context *context = nullptr;
-VK_Pipeline* pipeline = nullptr;
+VK_Pipeline *pipeline = nullptr;
 
 uint32_t updateUniformBufferData(char *&data, uint32_t size)
 {
@@ -54,15 +54,20 @@ int main()
     shaderSet->addShader("../shader/texture/vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
     shaderSet->addShader("../shader/texture/frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 
-    shaderSet->appendAttributeDescription(0, sizeof (float) * 3);
-    shaderSet->appendAttributeDescription(1, sizeof (float) * 4);
-    shaderSet->appendAttributeDescription(2, sizeof (float) * 2);
+    shaderSet->appendVertexAttributeDescription(0, sizeof (float) * 3, VK_FORMAT_R32G32B32_SFLOAT, 0);
+    shaderSet->appendVertexAttributeDescription(1, sizeof (float) * 4, VK_FORMAT_R32G32B32A32_SFLOAT,
+            sizeof(float) * 3);
+    shaderSet->appendVertexAttributeDescription(2, sizeof (float) * 2, VK_FORMAT_R32G32_SFLOAT,
+            sizeof(float) * 7);
+
+    shaderSet->appendVertexInputBindingDescription(9 * sizeof(float), 0, VK_VERTEX_INPUT_RATE_VERTEX);
 
     VkDescriptorSetLayoutBinding uniformBinding = VK_ShaderSet::createDescriptorSetLayoutBinding(0,
             VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT);
     shaderSet->addDescriptorSetLayoutBinding(uniformBinding);
 
-    auto samplerBinding = VK_ShaderSet::createDescriptorSetLayoutBinding(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+    auto samplerBinding = VK_ShaderSet::createDescriptorSetLayoutBinding(1,
+                          VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
                           VK_SHADER_STAGE_FRAGMENT_BIT);
     auto samplerCreateInfo  = VK_Sampler::createSamplerCreateInfo();
     auto samplerPtr = context->createSampler(samplerCreateInfo);
@@ -78,17 +83,17 @@ int main()
         return -1;
     }
 
-    auto ubo = context->createUniformBuffer(0, sizeof(float) * 16);
+    auto ubo = shaderSet->addUniformBuffer(0, sizeof(float) * 16);
     ubo->setWriteDataCallback(updateUniformBufferData);
-    context->addUniformBuffer(ubo);
 
     auto image = context->createImage("../images/smile.png");
-    auto imageViewCreateInfo = VK_ImageView::createImageViewCreateInfo(image->getImage(), VK_FORMAT_R8G8B8A8_SRGB);
+    auto imageViewCreateInfo = VK_ImageView::createImageViewCreateInfo(image->getImage(),
+                               VK_FORMAT_R8G8B8A8_SRGB);
     auto imageView = context->createImageView(imageViewCreateInfo);
-    context->addImageView(imageView);
+    shaderSet->addImageView(imageView);
 
     context->initVulkanContext();
-    pipeline = context->createPipeline();
+    pipeline = context->createPipeline(shaderSet);
     pipeline->create();
 
     auto buffer = context->createVertexBuffer(vertices, 9, indices);

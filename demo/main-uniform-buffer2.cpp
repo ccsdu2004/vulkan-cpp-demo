@@ -21,14 +21,16 @@ const std::vector<uint32_t> indices = {
 };
 
 VK_Context *context = nullptr;
-VK_Pipeline* pipeline = nullptr;
+VK_Pipeline *pipeline = nullptr;
 
 uint32_t updateUniformBufferData(char *&data, uint32_t size)
 {
     static auto startTime = std::chrono::high_resolution_clock::now();
     auto currentTime = std::chrono::high_resolution_clock::now();
-    float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
-    glm::mat4 model = glm::rotate(glm::mat4(1.0f), time * glm::radians(30.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+    float time = std::chrono::duration<float, std::chrono::seconds::period>
+                 (currentTime - startTime).count();
+    glm::mat4 model = glm::rotate(glm::mat4(1.0f), time * glm::radians(30.0f), glm::vec3(0.0f, 0.0f,
+                                  1.0f));
     memcpy(data, &model[0][0], size);
     return sizeof(model);
 }
@@ -48,7 +50,7 @@ void onFrameSizeChanged(int width, int height)
 int main()
 {
     VK_ContextConfig config;
-    config.debug = false;
+    config.debug = true;
     config.name = "Uniform Demo";
 
     context = createVkContext(config);
@@ -62,14 +64,18 @@ int main()
     shaderSet->addShader("../shader/uniform/vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
     shaderSet->addShader("../shader/uniform/frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 
-    shaderSet->appendAttributeDescription(0, sizeof (float) * 3);
-    shaderSet->appendAttributeDescription(1, sizeof (float) * 4);
+    shaderSet->appendVertexAttributeDescription(0, sizeof (float) * 3, VK_FORMAT_R32G32B32_SFLOAT, 0);
+    shaderSet->appendVertexAttributeDescription(1, sizeof (float) * 4, VK_FORMAT_R32G32B32A32_SFLOAT,
+            sizeof(float) * 3);
+
+    shaderSet->appendVertexInputBindingDescription(7 * sizeof(float), 0, VK_VERTEX_INPUT_RATE_VERTEX);
 
     VkDescriptorSetLayoutBinding uniformBinding = VK_ShaderSet::createDescriptorSetLayoutBinding(0,
             VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT);
     shaderSet->addDescriptorSetLayoutBinding(uniformBinding);
 
-    uniformBinding = VK_ShaderSet::createDescriptorSetLayoutBinding(1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+    uniformBinding = VK_ShaderSet::createDescriptorSetLayoutBinding(1,
+                     VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
                      VK_SHADER_STAGE_FRAGMENT_BIT);
     shaderSet->addDescriptorSetLayoutBinding(uniformBinding);
 
@@ -80,16 +86,14 @@ int main()
         return -1;
     }
 
-    auto ubo = context->createUniformBuffer(0, sizeof(float) * 16);
+    auto ubo = shaderSet->addUniformBuffer(0, sizeof(float) * 16);
     ubo->setWriteDataCallback(updateUniformBufferData);
-    context->addUniformBuffer(ubo);
 
-    ubo = context->createUniformBuffer(1, sizeof(float) * 4);
+    ubo = shaderSet->addUniformBuffer(1, sizeof(float) * 4);
     ubo->setWriteDataCallback(updateUniformColor);
-    context->addUniformBuffer(ubo);
 
     context->initVulkanContext();
-    pipeline = context->createPipeline();
+    pipeline = context->createPipeline(shaderSet);
     pipeline->getDynamicState()->addDynamicState(VK_DYNAMIC_STATE_VIEWPORT);
     pipeline->create();
     pipeline->getDynamicState()->applyDynamicViewport({0, 0, 640, 480, 0, 1});

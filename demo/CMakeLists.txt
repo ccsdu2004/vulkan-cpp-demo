@@ -10,8 +10,9 @@ set(DEMOS
     uniform-buffer2
     sampler
     texture
+    texture-push-descriptor
     model
-    model-2
+    model-model
     model-mesh
     model-mesh-dynamic-linewidth
     model-mesh-geom
@@ -20,6 +21,7 @@ set(DEMOS
     model-outline
     model-push-constant
     model-light
+    model-instance
     )
 
 foreach(var IN LISTS DEMOS)
@@ -34,6 +36,6 @@ endforeach()
 
 if(WIN32)
 else()
-    add_executable(opengl main-opengl.cpp glad/glad.c)
+    add_executable(opengl main-opengl.cpp ../glad/glad.c)
     target_link_libraries(opengl glfw GL dl)
 endif()

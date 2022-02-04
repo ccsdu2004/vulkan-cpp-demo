@@ -3,20 +3,35 @@
 #include "VK_PipelineDeriveImpl.h"
 #include "VK_ContextImpl.h"
 
-VK_PipelineDeriveImpl::VK_PipelineDeriveImpl(VK_ContextImpl *context, VK_ShaderSet *shader, VK_PipelineImpl *inputParent):
+VK_PipelineDeriveImpl::VK_PipelineDeriveImpl(VK_ContextImpl *context, VK_ShaderSet *shader,
+                                             VK_PipelineImpl *inputParent):
     VK_PipelineImpl(context, shader, inputParent)
 {
 }
 
 bool VK_PipelineDeriveImpl::create()
 {
+    return createPipeline(VkPipelineCreateFlagBits(0));
+    /*
+    descriptorSetLayout = new VK_DescriptorSetLayout(context, shaderSet);
+    pipelineLayout->create(descriptorSetLayout->getDescriptorSetLayout());
+
+    shaderSet->updateDescriptorPoolSize(context->getSwapImageCount());
+    descriptorPool = new VK_DescriptorPool(context);
+    descriptorPool->create(shaderSet);
+
+    descriptorSets->init(descriptorPool->getDescriptorPool(),
+                         descriptorSetLayout->getDescriptorSetLayout());
+
+    shaderSet->updateDescriptorSet(descriptorSets);
+
     pipelineCreateInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
     pipelineCreateInfo.flags = 0;
 
     {
-        VK_ShaderSet* shader = shaderSet;
+        VK_ShaderSet *shader = shaderSet;
 
-        if(!shader) {
+        if (!shader) {
             assert(parent);
             shader = parent->getShaderSet();
         }
@@ -73,19 +88,20 @@ bool VK_PipelineDeriveImpl::create()
 
     auto dynamicState = getDynamicState()->createDynamicStateCreateInfo(0);
     pipelineCreateInfo.pDynamicState = &dynamicState;
-    pipelineCreateInfo.layout = context->getPipelineLayout();
+    pipelineCreateInfo.layout = pipelineLayout->getPipelineLayout();
     pipelineCreateInfo.renderPass = context->getRenderPass();
     pipelineCreateInfo.subpass = 0;
     pipelineCreateInfo.basePipelineHandle = parent->pipeline;
     pipelineCreateInfo.basePipelineIndex = -1;
     pipelineCreateInfo.pNext = nullptr;
 
-    if (vkCreateGraphicsPipelines(context->getDevice(), context->getPipelineCache()->getPipelineCache(), 1, &pipelineCreateInfo, context->getAllocation(),
+    if (vkCreateGraphicsPipelines(context->getDevice(), context->getPipelineCache()->getPipelineCache(),
+                                  1, &pipelineCreateInfo, context->getAllocation(),
                                   &pipeline) != VK_SUCCESS) {
         std::cerr << "failed to create graphics pipeline!" << std::endl;
         return false;
     }
 
     needUpdate = false;
-    return true;
+    return true;*/
 }

@@ -1,13 +1,14 @@
 #include <vector>
 #include <numeric>
 #include <iostream>
-#include "VK_Context.h"
+#include "VK_ContextImpl.h"
 #include "VK_ShaderSetImpl.h"
+#include "VK_DescriptorSets.h"
+#include "VK_UniformBufferImpl.h"
 #include "VK_Util.h"
 
-VK_ShaderSetImpl::VK_ShaderSetImpl(VK_Context *vkContext, VkDevice device):
-    context(vkContext),
-    vkDevice(device)
+VK_ShaderSetImpl::VK_ShaderSetImpl(VK_ContextImpl *vkContext):
+    context(vkContext)
 {
 }
 
@@ -17,64 +18,52 @@ VK_ShaderSetImpl::~VK_ShaderSetImpl()
 
 void VK_ShaderSetImpl::release()
 {
-    for(auto itr = shaderStageCreateInfos.begin(); itr != shaderStageCreateInfos.end(); itr++)
-        vkDestroyShaderModule(vkDevice, itr->module, context->getAllocation());
+    for (auto itr = shaderStageCreateInfos.begin(); itr != shaderStageCreateInfos.end(); itr++)
+        vkDestroyShaderModule(context->getDevice(), itr->module, context->getAllocation());
+
+    for (auto uniform : uniformBuffers)
+        uniform->release();
+    uniformBuffers.clear();
     delete this;
 }
 
-void VK_ShaderSetImpl::appendAttributeDescription(int index, int size)
+void VK_ShaderSetImpl::appendVertexAttributeDescription(uint32_t index, uint32_t size, VkFormat format,
+        uint32_t offset, uint32_t binding)
 {
-    if(index == 0)
-        sizeTable.clear();
+    VkVertexInputAttributeDescription description;
+    description.binding = binding;
+    description.location = index;
+    description.format = format;
+    description.offset = offset;
 
-    if(sizeTable.size() != (size_t)index)
-        return;
-
-    if(size != 2 * sizeof(float) &&
-       size != 3 * sizeof(float) &&
-       size != 4 * sizeof(float))
-        return;
-
-    sizeTable.push_back(size);
-    vertexInputAttributeDescriptions.resize(sizeTable.size());
-
-    auto fn = [](int size)->VkFormat {
-        if(size == 2 * sizeof (float))
-            return VK_FORMAT_R32G32_SFLOAT;
-        else if(size == 3 * sizeof (float))
-            return VK_FORMAT_R32G32B32_SFLOAT;
-        else if(size == 4 * sizeof (float))
-            return VK_FORMAT_R32G32B32A32_SFLOAT;
-        return VK_FORMAT_R32G32B32A32_SFLOAT;
-    };
-
-    int offset = 0;
-    for(size_t i = 0; i < sizeTable.size(); i++) {
-        vertexInputAttributeDescriptions[i].binding = 0;
-        vertexInputAttributeDescriptions[i].location = i;
-        vertexInputAttributeDescriptions[i].format = fn(sizeTable[i]);
-        vertexInputAttributeDescriptions[i].offset = offset;
-        offset += sizeTable[i];
-    }
+    vertexInputAttributeDescriptions.push_back(description);
 }
 
-VkVertexInputBindingDescription* VK_ShaderSetImpl::getBindingDescription()
+void VK_ShaderSetImpl::appendVertexInputBindingDescription(uint32_t stride, uint32_t binding,
+        VkVertexInputRate inputRate)
 {
-    bindingDescription.binding = 0;
-    bindingDescription.stride = std::accumulate(sizeTable.begin(), sizeTable.end(), 0);
-    bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-
-    return &bindingDescription;
+    vertexInputBindingDescriptions.push_back({binding, stride, inputRate});
 }
 
-size_t VK_ShaderSetImpl::getAttributeDescriptionCount()const
+size_t VK_ShaderSetImpl::getVertexAttributeDescriptionCount()const
 {
     return vertexInputAttributeDescriptions.size();
 }
 
-const VkVertexInputAttributeDescription* VK_ShaderSetImpl::getAttributeDescriptionData()const
+const VkVertexInputAttributeDescription *VK_ShaderSetImpl::getVertexAttributeDescriptionData()const
 {
     return vertexInputAttributeDescriptions.data();
+}
+
+size_t VK_ShaderSetImpl::getVertexInputBindingDescriptionCount() const
+{
+    return vertexInputBindingDescriptions.size();
+}
+
+const VkVertexInputBindingDescription *VK_ShaderSetImpl::getVertexInputBindingDescriptionData()
+const
+{
+    return vertexInputBindingDescriptions.data();
 }
 
 void VK_ShaderSetImpl::addDescriptorSetLayoutBinding(const VkDescriptorSetLayoutBinding &binding)
@@ -109,21 +98,22 @@ const VkDescriptorPoolSize *VK_ShaderSetImpl::getDescriptorPoolSizeData() const
 void VK_ShaderSetImpl::updateDescriptorPoolSize(int32_t size)
 {
     auto itr = descriptorPoolSizes.begin();
-    while(itr != descriptorPoolSizes.end()) {
+    while (itr != descriptorPoolSizes.end()) {
         (*itr).descriptorCount = size;
         itr ++;
     }
 }
 
-bool VK_ShaderSetImpl::addShader(const std::string &spvFile, VkShaderStageFlagBits type, const char* entryPoint)
+bool VK_ShaderSetImpl::addShader(const std::string &spvFile, VkShaderStageFlagBits type,
+                                 const char *entryPoint)
 {
     auto module = createShaderModule(spvFile);
-    if(!module)
+    if (!module)
         return false;
 
     auto itr = shaderStageCreateInfos.begin();
-    while(itr != shaderStageCreateInfos.end()) {
-        if(itr->flags == type)
+    while (itr != shaderStageCreateInfos.end()) {
+        if (itr->flags == type)
             return false;
         itr ++;
     }
@@ -138,22 +128,52 @@ bool VK_ShaderSetImpl::addShader(const std::string &spvFile, VkShaderStageFlagBi
     return true;
 }
 
+VK_UniformBuffer *VK_ShaderSetImpl::addUniformBuffer(uint32_t binding, uint32_t bufferSize)
+{
+    auto buffer = new VK_UniformBufferImpl(context, binding, bufferSize);
+    buffer->initBuffer(context->getSwapImageCount());
+    uniformBuffers.push_back(buffer);
+    return buffer;
+}
+
+void VK_ShaderSetImpl::initUniformBuffer()
+{
+    for (auto uniform : uniformBuffers)
+        uniform->initBuffer(context->getSwapImageCount());
+}
+
+void VK_ShaderSetImpl::clearUniformBuffer()
+{
+    for (auto uniformBuffer : uniformBuffers)
+        uniformBuffer->clearBuffer();
+}
+
+void VK_ShaderSetImpl::addImageView(VK_ImageView *imageView)
+{
+    if (imageView) {
+        auto find = std::find(imageViews.begin(), imageViews.end(), imageView);
+        if (find != imageViews.end())
+            return;
+        imageViews.push_back(imageView);
+    }
+}
+
 bool VK_ShaderSetImpl::isValid()
 {
     bool hasV = false;
     bool hasFs = false;
     auto itr = shaderStageCreateInfos.begin();
-    while(itr != shaderStageCreateInfos.end()) {
-        if(itr->stage == VK_SHADER_STAGE_VERTEX_BIT)
+    while (itr != shaderStageCreateInfos.end()) {
+        if (itr->stage == VK_SHADER_STAGE_VERTEX_BIT)
             hasV = true;
-        else if(itr->stage == VK_SHADER_STAGE_FRAGMENT_BIT)
+        else if (itr->stage == VK_SHADER_STAGE_FRAGMENT_BIT)
             hasFs = true;
         itr ++;
     }
     return hasV && hasFs;
 }
 
-VkPipelineShaderStageCreateInfo* VK_ShaderSetImpl::getCreateInfoData()
+VkPipelineShaderStageCreateInfo *VK_ShaderSetImpl::getCreateInfoData()
 {
     return shaderStageCreateInfos.data();
 }
@@ -161,6 +181,17 @@ VkPipelineShaderStageCreateInfo* VK_ShaderSetImpl::getCreateInfoData()
 size_t VK_ShaderSetImpl::getCreateInfoCount()
 {
     return shaderStageCreateInfos.size();
+}
+
+void VK_ShaderSetImpl::updateDescriptorSet(std::shared_ptr<VK_DescriptorSets> descriptorSet)
+{
+    descriptorSet->update(uniformBuffers, imageViews);
+}
+
+void VK_ShaderSetImpl::update(uint32_t index)
+{
+    for (auto uniform : uniformBuffers)
+        uniform->update(index);
 }
 
 VkShaderModule VK_ShaderSetImpl::createShaderModule(const std::string &spvFile)
@@ -175,7 +206,8 @@ VkShaderModule VK_ShaderSetImpl::createShaderModule(const std::string &spvFile)
     createInfo.codeSize = code.size();
     createInfo.pCode = reinterpret_cast<const uint32_t *>(code.data());
 
-    if (vkCreateShaderModule(vkDevice, &createInfo, context->getAllocation(), &shaderModule) != VK_SUCCESS)
+    if (vkCreateShaderModule(context->getDevice(), &createInfo, context->getAllocation(),
+                             &shaderModule) != VK_SUCCESS)
         std::cerr << "failed to create shader module!" << std::endl;
 
     return shaderModule;

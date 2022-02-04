@@ -13,8 +13,8 @@ class VK_OBJLoader : public VK_VertexBuffer
 {
 public:
     VK_OBJLoader() = delete;
-    VK_OBJLoader(VK_Context *context, VkDevice vkDevice):
-        VK_VertexBuffer(context,vkDevice)
+    VK_OBJLoader(VK_Context *context):
+        VK_VertexBuffer(context)
     {
     }
 

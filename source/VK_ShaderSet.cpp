@@ -1,6 +1,7 @@
 #include "VK_ShaderSet.h"
 
-VkDescriptorSetLayoutBinding VK_ShaderSet::createDescriptorSetLayoutBinding(uint32_t id, VkDescriptorType type, VkShaderStageFlagBits flag)
+VkDescriptorSetLayoutBinding VK_ShaderSet::createDescriptorSetLayoutBinding(uint32_t id,
+                                                                            VkDescriptorType type, VkShaderStageFlagBits flag)
 {
     VkDescriptorSetLayoutBinding binding;
     binding.binding = id;

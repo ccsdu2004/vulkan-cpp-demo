@@ -7,7 +7,7 @@ class VK_ContextImpl;
 class VK_ImageViewImpl : public VK_ImageView
 {
 public:
-    VK_ImageViewImpl(VkDevice vkDevice, VK_ContextImpl* vkContext);
+    VK_ImageViewImpl(VK_ContextImpl* vkContext);
     ~VK_ImageViewImpl();
 public:
     bool create(const VkImageViewCreateInfo& viewCreateInfo, uint32_t mipLevels);
@@ -17,7 +17,6 @@ public:
     VkWriteDescriptorSet createWriteDescriptorSet(VkDescriptorSet descriptorSet)const override;
     VkImageView getImageView()const override;
 private:
-    VkDevice device = nullptr;
     VK_ContextImpl* context = nullptr;
 
     VkDescriptorImageInfo imageInfo;

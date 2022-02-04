@@ -45,6 +45,10 @@ add_library(
      source/VK_ShaderSetImpl.cpp
      source/VK_Vertex.cpp
      source/VK_VertexBuffer.cpp
+     source/VK_InstanceBuffer.h
+     source/VK_InstanceBuffer.cpp
+     source/VK_IndirectBuffer.h
+     source/VK_IndirectBuffer.cpp
      source/VK_UniformBufferImpl.h
      source/VK_UniformBufferImpl.cpp
      source/VK_ImageImpl.cpp
@@ -66,6 +70,22 @@ add_library(
      source/VK_PipelineImpl.cpp
      source/VK_PipelineDeriveImpl.h
      source/VK_PipelineDeriveImpl.cpp
+     source/VK_DescriptorSets.h
+     source/VK_DescriptorSets.cpp
+     source/VK_DescriptorSetLayout.h
+     source/VK_DescriptorSetLayout.cpp
+     source/VK_PipelineLayout.h
+     source/VK_PipelineLayout.cpp
+     source/VK_DescriptorPool.h
+     source/VK_DescriptorPool.cpp
+     source/VK_RenderPass.h
+     source/VK_RenderPass.cpp
+     source/VK_PushDescriptor.h
+     source/VK_PushDescriptor.cpp
+     include/VK_CommandPool.h
+     source/VK_CommandPool.cpp
+     include/VK_SecondaryCommandBuffer.h
+     source/VK_SecondaryCommandBuffer.cpp
      thirdparty/tiny_obj_loader.cc
      thirdparty/stb_image.cpp
 )

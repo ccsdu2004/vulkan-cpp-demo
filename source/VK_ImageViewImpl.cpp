@@ -1,8 +1,7 @@
 #include "VK_ImageViewImpl.h"
 #include "VK_ContextImpl.h"
 
-VK_ImageViewImpl::VK_ImageViewImpl(VkDevice vkDevice, VK_ContextImpl* vkContext):
-    device(vkDevice),
+VK_ImageViewImpl::VK_ImageViewImpl(VK_ContextImpl *vkContext):
     context(vkContext)
 {
 }
@@ -13,11 +12,11 @@ VK_ImageViewImpl::~VK_ImageViewImpl()
 
 void VK_ImageViewImpl::release()
 {
-    if(isRemoveFromContainerWhenRelease())
+    if (isRemoveFromContainerWhenRelease())
         context->removeImageView(this);
 
-    if(textureImageView)
-        vkDestroyImageView(device, textureImageView, context->getAllocation());
+    if (textureImageView)
+        vkDestroyImageView(context->getDevice(), textureImageView, context->getAllocation());
 
     delete this;
 }
@@ -41,12 +40,10 @@ VkImageView VK_ImageViewImpl::getImageView() const
     return textureImageView;
 }
 
-bool VK_ImageViewImpl::create(const VkImageViewCreateInfo& viewCreateInfo, uint32_t mipLevels)
+bool VK_ImageViewImpl::create(const VkImageViewCreateInfo &viewCreateInfo, uint32_t mipLevels)
 {
-    VkImageViewCreateInfo info = viewCreateInfo;
-    info.subresourceRange.baseMipLevel = mipLevels;
-
-    if (vkCreateImageView(device, &viewCreateInfo, context->getAllocation(), &textureImageView) != VK_SUCCESS) {
+    if (vkCreateImageView(context->getDevice(), &viewCreateInfo, context->getAllocation(),
+                          &textureImageView) != VK_SUCCESS) {
         std::cerr << "failed to create texture image view!" << std::endl;
         return false;
     }

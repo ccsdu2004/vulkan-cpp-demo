@@ -1,5 +1,6 @@
 #include <memory.h>
 #include <iostream>
+#include <iomanip>
 #include <fstream>
 #include <vector>
 #include <string>
@@ -113,19 +114,12 @@ bool VK_PipelineCacheImpl::isValidCacheData(const std::string &filename, const c
             std::cerr << "uuid mismatch in " << filename << std::endl;
             std::cerr << "cache contains: " << std::endl;
 
-            auto fn = [](uint8_t *uuid) {
-                for (int i = 0; i < 16; i++) {
-                    std::cout << (int)uuid[i] << " ";
-                    if (i % 4 == 3)
-                        std::cerr << std::endl;
-                }
-                std::cerr << std::endl;
-            };
-            fn(pipelineCacheUUID);
+            printUUID(pipelineCacheUUID);
+
             std::cerr << "driver expects:" << std::endl;
-            fn(vkPhysicalDeviceProperties.pipelineCacheUUID);
-            return false;
-        }
+            printUUID(vkPhysicalDeviceProperties.pipelineCacheUUID);
+        };
+
         return true;
     }
     return false;

@@ -9,7 +9,7 @@ class VK_ContextImpl;
 class VK_ImageImpl : public VK_Image
 {
 public:
-    VK_ImageImpl(VkDevice vkDevice, VK_ContextImpl* vkContext);
+    VK_ImageImpl(VK_ContextImpl* vkContext);
     ~VK_ImageImpl();
 public:
     bool load(const std::string& filename);
@@ -28,11 +28,9 @@ protected:
 
     void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width,
                            uint32_t height);
-
     void transitionImageLayout(VkImage image, VkImageLayout oldLayout,
                                VkImageLayout newLayout, uint32_t mipLevels);
 private:
-    VkDevice device = nullptr;
     VK_ContextImpl* context = nullptr;
     VkImageCreateInfo createInfo = {};
     VkImage textureImage = 0;

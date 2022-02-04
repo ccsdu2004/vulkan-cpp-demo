@@ -19,8 +19,8 @@ const std::vector<float> vertices2 = {
         -0.5f, -0.3f, 0.0f, 1.0f, 1.0f, 1.0f, 0.5f
     };
 
-VK_Context* context = nullptr;
-VK_Pipeline* pipeline = nullptr;
+VK_Context *context = nullptr;
+VK_Pipeline *pipeline = nullptr;
 
 void onMouseButtonCallback(int button, int action, int mods)
 {
@@ -31,7 +31,7 @@ void onMouseButtonCallback(int button, int action, int mods)
     VkPipelineColorBlendAttachmentState blend{};
     createInfo.attachmentCount = 1;
 
-    if(action) {
+    if (action) {
         blend.blendEnable = VK_TRUE;
         blend.colorWriteMask = 0xff;
         blend.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
@@ -56,7 +56,7 @@ int main()
     VK_ContextConfig config;
     config.debug = true;
     config.name = "Blend Color";
-    config.mouseCallback = &onMouseButtonCallback;
+    //config.mouseCallback = &onMouseButtonCallback;
 
     context = createVkContext(config);
     context->createWindow(640, 480, true);
@@ -68,10 +68,12 @@ int main()
     shaderSet->addShader("../shader/vertex/vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
     shaderSet->addShader("../shader/vertex/frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 
-    shaderSet->appendAttributeDescription(0, sizeof (float) * 3);
-    shaderSet->appendAttributeDescription(1, sizeof (float) * 4);
+    shaderSet->appendVertexAttributeDescription(0, sizeof (float) * 3, VK_FORMAT_R32G32B32_SFLOAT, 0);
+    shaderSet->appendVertexAttributeDescription(1, sizeof (float) * 4, VK_FORMAT_R32G32B32A32_SFLOAT,
+            sizeof(float) * 3);
+    shaderSet->appendVertexInputBindingDescription(7 * sizeof(float), 0, VK_VERTEX_INPUT_RATE_VERTEX);
 
-    if(!shaderSet->isValid()) {
+    if (!shaderSet->isValid()) {
         std::cerr << "invalid shaderSet" << std::endl;
         shaderSet->release();
         context->release();
@@ -79,7 +81,7 @@ int main()
     }
 
     context->initVulkanContext();
-    pipeline = context->createPipeline();
+    pipeline = context->createPipeline(shaderSet);
     pipeline->create();
 
     auto buffer = context->createVertexBuffer(vertices1, 7);

@@ -14,7 +14,7 @@ void main() {
     vec3 intensity = vec3(1.0,1.0,1.0);
     vec3 kd = vec3(pushConsts.lightColor);
     vec3 ka = texture(texSampler, fragTexCoord).rgb;
-    vec3 ks = vec3(0,1,0);
+    vec3 ks = vec3(1,0,0);
 
     float shininess = 64.0;
     vec3 n = normalize(fragNormal);

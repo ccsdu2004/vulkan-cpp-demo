@@ -5,8 +5,7 @@
 #include "VK_ImageImpl.h"
 #include "VK_ContextImpl.h"
 
-VK_ImageImpl::VK_ImageImpl(VkDevice vkDevice, VK_ContextImpl *vkContext):
-    device(vkDevice),
+VK_ImageImpl::VK_ImageImpl(VK_ContextImpl *vkContext):
     context(vkContext)
 {
 }
@@ -29,24 +28,30 @@ bool VK_ImageImpl::load(const std::string &filename)
 
     VkBuffer stagingBuffer;
     VkDeviceMemory stagingBufferMemory;
-    context->createBuffer(imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
+    context->createBuffer(imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                          VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer,
+                          stagingBufferMemory);
 
-    void* data = nullptr;
-    vkMapMemory(device, stagingBufferMemory, 0, imageSize, 0, &data);
+    void *data = nullptr;
+    vkMapMemory(context->getDevice(), stagingBufferMemory, 0, imageSize, 0, &data);
     memcpy(data, pixels, static_cast<size_t>(imageSize));
-    vkUnmapMemory(device, stagingBufferMemory);
+    vkUnmapMemory(context->getDevice(), stagingBufferMemory);
 
     stbi_image_free(pixels);
 
     mipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(width, height)))) + 1;
 
-    createImage(width, height, VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    createImage(width, height, VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL,
+                VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-    transitionImageLayout(textureImage, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, mipLevels);
-    copyBufferToImage(stagingBuffer, textureImage, static_cast<uint32_t>(width), static_cast<uint32_t>(height));
+    transitionImageLayout(textureImage, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                          mipLevels);
+    copyBufferToImage(stagingBuffer, textureImage, static_cast<uint32_t>(width),
+                      static_cast<uint32_t>(height));
 
-    vkDestroyBuffer(device, stagingBuffer, context->getAllocation());
-    vkFreeMemory(device, stagingBufferMemory, context->getAllocation());
+    vkDestroyBuffer(context->getDevice(), stagingBuffer, context->getAllocation());
+    vkFreeMemory(context->getDevice(), stagingBufferMemory, context->getAllocation());
     generateMipmaps(textureImage, VK_FORMAT_R8G8B8A8_UNORM, width, height, mipLevels);
 
     return true;
@@ -74,17 +79,18 @@ int VK_ImageImpl::getMipLevel() const
 
 void VK_ImageImpl::release()
 {
-    if(isRemoveFromContainerWhenRelease())
+    if (isRemoveFromContainerWhenRelease())
         context->onReleaseImage(this);
 
-    if(textureImage)
-        vkDestroyImage(device, textureImage, context->getAllocation());
-    if(textureImageMemory)
-        vkFreeMemory(device, textureImageMemory, context->getAllocation());
+    if (textureImage)
+        vkDestroyImage(context->getDevice(), textureImage, context->getAllocation());
+    if (textureImageMemory)
+        vkFreeMemory(context->getDevice(), textureImageMemory, context->getAllocation());
     delete this;
 }
 
-void VK_ImageImpl::generateMipmaps(VkImage image, VkFormat imageFormat, int32_t texWidth, int32_t texHeight, uint32_t mipLevels)
+void VK_ImageImpl::generateMipmaps(VkImage image, VkFormat imageFormat, int32_t texWidth,
+                                   int32_t texHeight, uint32_t mipLevels)
 {
     VkFormatProperties formatProperties;
     vkGetPhysicalDeviceFormatProperties(context->getPhysicalDevice(), imageFormat, &formatProperties);
@@ -93,7 +99,7 @@ void VK_ImageImpl::generateMipmaps(VkImage image, VkFormat imageFormat, int32_t 
         std::cerr << "texture image format does not support linear blitting!" << std::endl;
     }
 
-    VkCommandBuffer commandBuffer = context->beginSingleTimeCommands();
+    VkCommandBuffer commandBuffer = context->getCommandPool()->beginSingleTimeCommands();
 
     VkImageMemoryBarrier barrier = {};
     barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -170,12 +176,13 @@ void VK_ImageImpl::generateMipmaps(VkImage image, VkFormat imageFormat, int32_t 
                          0, nullptr,
                          1, &barrier);
 
-    context->endSingleTimeCommands(commandBuffer);
+    context->getCommandPool()->endSingleTimeCommands(commandBuffer, context->getGraphicQueue());
 }
 
-void VK_ImageImpl::copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height)
+void VK_ImageImpl::copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width,
+                                     uint32_t height)
 {
-    VkCommandBuffer commandBuffer = context->beginSingleTimeCommands();
+    VkCommandBuffer commandBuffer = context->getCommandPool()->beginSingleTimeCommands();
 
     VkBufferImageCopy region{};
     region.bufferOffset = 0;
@@ -194,12 +201,13 @@ void VK_ImageImpl::copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t wi
 
     vkCmdCopyBufferToImage(commandBuffer, buffer, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1,
                            &region);
-    context->endSingleTimeCommands(commandBuffer);
+    context->getCommandPool()->endSingleTimeCommands(commandBuffer, context->getGraphicQueue());
 }
 
-void VK_ImageImpl::transitionImageLayout(VkImage image, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t mipLevels)
+void VK_ImageImpl::transitionImageLayout(VkImage image, VkImageLayout oldLayout,
+        VkImageLayout newLayout, uint32_t mipLevels)
 {
-    VkCommandBuffer commandBuffer = context->beginSingleTimeCommands();
+    VkCommandBuffer commandBuffer = context->getCommandPool()->beginSingleTimeCommands();
 
     VkImageMemoryBarrier barrier{};
     barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -251,10 +259,11 @@ void VK_ImageImpl::transitionImageLayout(VkImage image, VkImageLayout oldLayout,
         1, &barrier
     );
 
-    context->endSingleTimeCommands(commandBuffer);
+    context->getCommandPool()->endSingleTimeCommands(commandBuffer, context->getGraphicQueue());
 }
 
-bool VK_ImageImpl::createImage(uint32_t width, uint32_t height, VkSampleCountFlagBits sample, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties)
+bool VK_ImageImpl::createImage(uint32_t width, uint32_t height, VkSampleCountFlagBits sample,
+                               VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties)
 {
     createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
     createInfo.imageType = VK_IMAGE_TYPE_2D;
@@ -273,25 +282,28 @@ bool VK_ImageImpl::createImage(uint32_t width, uint32_t height, VkSampleCountFla
     createInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
     createInfo.pNext = nullptr;
 
-    if (vkCreateImage(device, &createInfo, context->getAllocation(), &textureImage) != VK_SUCCESS) {
+    if (vkCreateImage(context->getDevice(), &createInfo, context->getAllocation(),
+                      &textureImage) != VK_SUCCESS) {
         std::cerr << "failed to create image!" << std::endl;
         return true;
     }
 
     VkMemoryRequirements memRequirements;
-    vkGetImageMemoryRequirements(device, textureImage, &memRequirements);
+    vkGetImageMemoryRequirements(context->getDevice(), textureImage, &memRequirements);
 
     VkMemoryAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
     allocInfo.allocationSize = memRequirements.size;
-    allocInfo.memoryTypeIndex = context->findMemoryType(memRequirements.memoryTypeBits, properties);
+    allocInfo.memoryTypeIndex = findMemoryType(context->getPhysicalDevice(),
+                                memRequirements.memoryTypeBits, properties);
 
-    if (vkAllocateMemory(device, &allocInfo, context->getAllocation(), &textureImageMemory) != VK_SUCCESS) {
+    if (vkAllocateMemory(context->getDevice(), &allocInfo, context->getAllocation(),
+                         &textureImageMemory) != VK_SUCCESS) {
         std::cerr << "failed to allocate image memory!" << std::endl;
         return false;
     }
 
-    vkBindImageMemory(device, textureImage, textureImageMemory, 0);
+    vkBindImageMemory(context->getDevice(), textureImage, textureImageMemory, 0);
     return true;
 }
 

@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <cstdint>
 #include <set>
+#include <memory>
 #include <vector>
 #include <list>
 #include <array>
@@ -18,29 +19,12 @@
 #include "VK_DynamicStateImpl.h"
 #include "VK_PipelineCacheImpl.h"
 #include "VK_PipelineImpl.h"
-
-struct QueueFamilyIndices {
-    std::optional<uint32_t> graphicsFamily;
-    std::optional<uint32_t> presentFamily;
-
-    bool isComplete()
-    {
-        return graphicsFamily.has_value() && presentFamily.has_value();
-    }
-};
-
-struct SwapChainSupportDetails {
-    VkSurfaceCapabilitiesKHR capabilities;
-    std::vector<VkSurfaceFormatKHR> formats;
-    std::vector<VkPresentModeKHR> presentModes;
-};
+#include "VK_RenderPass.h"
+#include "VK_CommandPool.h"
+#include "VK_Util.h"
 
 class VK_ContextImpl : public VK_Context
 {
-    const std::vector<const char *> deviceExtensions = {
-        VK_KHR_SWAPCHAIN_EXTENSION_NAME
-    };
-
     static void framebufferResizeCallback(GLFWwindow *window, int width, int height);
     static void mouseButtonCallback(GLFWwindow *window, int button, int state, int mods);
 public:
@@ -57,19 +41,20 @@ public:
     VkDevice getDevice()const override;
     VK_PipelineCache *getPipelineCache()const override;
     VkPhysicalDevice getPhysicalDevice()const override;
+    size_t getSwapImageCount()const override;
     VkSampleCountFlagBits getSampleCountFlagBits()const;
 
-    void addPushConstant(const VkPushConstantRange& constantRange, const char* data)override;
     bool initVulkanContext()override;
-    VkRenderPass getRenderPass()const;
-    VkPipelineLayout getPipelineLayout()const;
+    VkRenderPass getRenderPass()const override;
+    VkQueue getGraphicQueue()const override;
 
-    VK_Pipeline* createPipeline() override;
-    void addPipeline(VK_PipelineImpl* pipeline);
+    VK_Pipeline *createPipeline(VK_ShaderSet *shaderSet) override;
+    void addPipeline(VK_PipelineImpl *pipeline);
     bool createCommandBuffers()override;
     bool run()override;
 public:
     VkExtent2D getSwapChainExtent()const override;
+    VkFormat getSwapChainFormat()const override;
 public:
     void setClearColor(float r, float g, float b, float a)override;
     void setClearDepthStencil(float depth, uint32_t stencil)override;
@@ -79,10 +64,15 @@ public:
     VK_ShaderSet *createShaderSet()override;
 
     VK_Buffer *createVertexBuffer(const std::vector<float> &vertices, uint32_t count,
-                                  const std::vector<uint32_t> &indices = std::vector<uint32_t>())override;
+                                  const std::vector<uint32_t> &indices = std::vector<uint32_t>(), bool indirectDraw = false)override;
     VK_Buffer *createVertexBuffer(const std::vector<VK_Vertex> &vertices,
-                                  const std::vector<uint32_t> &indices = std::vector<uint32_t>())override;
-    VK_Buffer *createVertexBuffer(const std::string &filename, bool zero = true)override;
+                                  const std::vector<uint32_t> &indices = std::vector<uint32_t>(), bool indirectDraw = false)override;
+    VK_Buffer *createVertexBuffer(const std::string &filename, bool zero = true, bool indirectDraw = false)override;
+
+    VK_Buffer *createIndirectBuffer(uint32_t instanceCount, uint32_t oneInstanceSize,
+                                    uint32_t vertexCount) override;
+    VK_Buffer *createInstanceBuffer(uint32_t count, uint32_t itemSize, const char *data,
+                                    uint32_t bind) override;
 
     void removeBuffer(VK_Buffer *buffer)override;
     void addBuffer(VK_Buffer *buffer)override;
@@ -95,21 +85,14 @@ public:
 
     VK_ImageView *createImageView(const VkImageViewCreateInfo &viewCreateInfo,
                                   uint32_t mipLevels = 1)override;
-    void addImageView(VK_ImageView *imageView)override;
     void removeImageView(VK_ImageView *imageView);
-
-    VK_UniformBuffer *createUniformBuffer(uint32_t binding, uint32_t bufferSize)override;
-    void addUniformBuffer(VK_UniformBuffer *uniformBuffer)override;
-    void removeUniformBuffer(VK_UniformBuffer *uniforBuffer);
 public:
     bool createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties,
                       VkBuffer &buffer,
                       VkDeviceMemory &bufferMemory)override;
     void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size)override;
-    uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties)override;
 
-    VkCommandBuffer beginSingleTimeCommands();
-    void endSingleTimeCommands(VkCommandBuffer commandBuffer);
+    VK_CommandPool* getCommandPool()const override;
 private:
     void recreateSwapChain();
 
@@ -124,8 +107,6 @@ private:
     bool createSwapChainImageViews();
     bool createPipelineCache();
     void createRenderPass();
-    bool createDescriptorSetLayout();
-    bool createPipleLayout();
 
     bool createGraphicsPipeline();
 
@@ -136,16 +117,8 @@ private:
     void createColorResources();
     void createDepthResources();
 
-    VkFormat findSupportedFormat(const std::vector<VkFormat> &candidates, VkImageTiling tiling,
-                                 VkFormatFeatureFlags features);
-
-    VkFormat findDepthFormat();
-
-    bool hasStencilComponent(VkFormat format);
-    void createDescriptorPool();
-    void createDescriptorSets();
     void createSyncObjects();
-    void drawFrame();
+    bool drawFrame();
 
     VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR> &availableFormats);
     VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR> &availablePresentModes);
@@ -157,13 +130,11 @@ private:
     bool checkDeviceExtensionSupport(VkPhysicalDevice device);
     QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
     std::vector<const char *> getRequiredExtensions();
-
-    VkSampleCountFlagBits getMaxUsableSampleCount();
-private:
-    void initClearColorAndDepthStencil();
 private:
     VK_ContextConfig appConfig;
     VK_Config vkConfig;
+
+    std::vector<const char *> deviceExtensions;
 
     VK_Allocator *vkAllocator = nullptr;
 
@@ -193,17 +164,12 @@ private:
     std::vector<VK_ImageView *> swapChainImageViews;
     std::vector<VkFramebuffer> swapChainFramebuffers;
 
-    VkRenderPass renderPass;
-    VkDescriptorSetLayout descriptorSetLayout = 0;
+    VK_RenderPass *renderPass = nullptr;
 
-    VkPipelineLayout pipelineLayout;
-    std::vector<VkPushConstantRange> pushConstantRange;
-    std::vector<const char*> pushConstantData;
+    VK_PipelineCacheImpl *vkPipelineCache = nullptr;
+    std::list<VK_PipelineImpl *> pipelines;
 
-    VK_PipelineCacheImpl* vkPipelineCache = nullptr;
-    std::list<VK_PipelineImpl*> pipelines;
-
-    VkCommandPool commandPool = 0;
+    VK_CommandPool* commandPool = nullptr;
     std::vector<VkCommandBuffer> commandBuffers;
 
     VK_ImageImpl *vkColorImage = nullptr;
@@ -211,9 +177,6 @@ private:
 
     VK_ImageImpl *vkDepthImage = nullptr;
     VK_ImageViewImpl *vkDepthImageView = nullptr;
-
-    VkDescriptorPool descriptorPool = 0;
-    std::vector<VkDescriptorSet> descriptorSets;
 
     std::vector<VkSemaphore> imageAvailableSemaphores;
     std::vector<VkSemaphore> renderFinishedSemaphores;
@@ -223,20 +186,16 @@ private:
 
     bool framebufferResized = false;
 
-    VK_ShaderSet *vkBaseShaderSet = nullptr;
-    std::list<VK_ShaderSet*> vkShaders;
+    std::list<VK_ShaderSet *> vkShaders;
     std::list<VK_Buffer *> vkBuffers;
-
-    std::list<VK_UniformBuffer *> vkUniformBuffers;
 
     bool needUpdateSwapChain = false;
 
-    VkClearValue vkClearValue;
+    VkClearValue vkClearValue = {{{0.0f, 0.0f, 0.0f, 0.0f}}};
 
     std::list<VK_Image *> vkImageList;
     std::list<VK_Sampler *> vkSamplerList;
     std::list<VK_ImageView *> vkImageViewList;
-    std::set<VK_ImageView *> vkUnusedImageViewList;
 };
 
 #endif // VK_CONTEXTIMPL_H

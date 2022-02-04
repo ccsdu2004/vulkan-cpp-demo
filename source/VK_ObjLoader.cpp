@@ -1,5 +1,6 @@
 #include "tiny_obj_loader.h"
 #include "VK_ObjLoader.h"
+#include <iostream>
 
 inline glm::vec3 getMinPos(const glm::vec3 &left, const glm::vec3 &right)
 {
@@ -25,7 +26,9 @@ bool VK_OBJLoader::load(const std::string &file, bool zero)
     std::string warn;
     std::string err;
 
-    bool ok = tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, file.data(), nullptr, true, true);
+    bool ok = tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, file.data(),
+                               nullptr,
+                               true, true);
     if (!ok)
         return false;
 

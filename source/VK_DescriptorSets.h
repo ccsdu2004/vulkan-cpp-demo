@@ -2,6 +2,7 @@
 #define VK_DESCRIPTORSETS_H
 #include <vector>
 #include <list>
+#include <map>
 #include <vulkan/vulkan.h>
 #include "VK_ImageView.h"
 
@@ -17,7 +18,7 @@ public:
 public:
     void init(VkDescriptorPool pool, VkDescriptorSetLayout setLayout);
     void update(const std::list<VK_UniformBuffer *> &uniformBuffers,
-                const std::list<VK_ImageView *> &imageViews);
+                const std::map<VK_ImageView *, uint32_t> &imageViews);
 
     void bind(VkCommandBuffer command, VkPipelineLayout pipelineLayout, uint32_t index);
 private:

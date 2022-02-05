@@ -148,13 +148,13 @@ void VK_ShaderSetImpl::clearUniformBuffer()
         uniformBuffer->clearBuffer();
 }
 
-void VK_ShaderSetImpl::addImageView(VK_ImageView *imageView)
+void VK_ShaderSetImpl::addImageView(VK_ImageView *imageView, uint32_t binding)
 {
     if (imageView) {
-        auto find = std::find(imageViews.begin(), imageViews.end(), imageView);
+        auto find = imageViews.find(imageView);
         if (find != imageViews.end())
             return;
-        imageViews.push_back(imageView);
+        imageViews.insert(std::make_pair(imageView, binding));
     }
 }
 

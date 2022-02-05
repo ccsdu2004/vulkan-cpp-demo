@@ -43,7 +43,7 @@ public:
     virtual void initUniformBuffer() = 0;
     virtual void clearUniformBuffer() = 0;
 
-    virtual void addImageView(VK_ImageView *imageView) = 0;
+    virtual void addImageView(VK_ImageView *imageView, uint32_t binding = 1) = 0;
 public:
     virtual bool isValid() = 0;
     virtual VkPipelineShaderStageCreateInfo *getCreateInfoData() = 0;

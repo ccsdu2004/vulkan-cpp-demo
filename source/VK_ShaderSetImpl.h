@@ -45,7 +45,7 @@ public:
     void initUniformBuffer() override;
     void clearUniformBuffer()override;
 
-    void addImageView(VK_ImageView *imageView)override;
+    void addImageView(VK_ImageView *imageView, uint32_t binding = 1)override;
 
     bool isValid()override;
     VkPipelineShaderStageCreateInfo *getCreateInfoData()override;
@@ -67,7 +67,7 @@ private:
     std::vector<VkDescriptorPoolSize> descriptorPoolSizes;
 
     std::list<VK_UniformBuffer *> uniformBuffers;
-    std::list<VK_ImageView * > imageViews;
+    std::map<VK_ImageView *, uint32_t> imageViews;
 };
 
 #endif // VK_SHADERSETIMPL_H

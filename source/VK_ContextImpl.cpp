@@ -758,7 +758,7 @@ bool VK_ContextImpl::createSwapChainImageViews()
 
         VK_ImageViewImpl *view = new VK_ImageViewImpl(this);
         view->setRemoveFromContainerWhenRelease(false);
-        if (!view->create(viewCreateInfo, 1)) {
+        if (!view->create(viewCreateInfo)) {
             std::cerr << "failed to create image views" << std::endl;
             return false;
         }
@@ -888,7 +888,7 @@ VK_ImageView *VK_ContextImpl::createImageView(const VkImageViewCreateInfo &viewC
         uint32_t mipLevels)
 {
     auto imageView = new VK_ImageViewImpl(this);
-    if (!imageView->create(viewCreateInfo, mipLevels)) {
+    if (!imageView->create(viewCreateInfo)) {
         delete imageView;
         return nullptr;
     }
@@ -1009,7 +1009,7 @@ void VK_ContextImpl::createColorResources()
     auto createInfo = VK_ImageView::createImageViewCreateInfo(vkColorImage->getImage(), colorFormat);
     createInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
     vkColorImageView = new VK_ImageViewImpl(this);
-    vkColorImageView->create(createInfo, 1);
+    vkColorImageView->create(createInfo);
 }
 
 void VK_ContextImpl::createDepthResources()
@@ -1027,7 +1027,7 @@ void VK_ContextImpl::createDepthResources()
     auto createInfo = VK_ImageView::createImageViewCreateInfo(vkDepthImage->getImage(), depthFormat);
     createInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
     vkDepthImageView = new VK_ImageViewImpl(this);
-    vkDepthImageView->create(createInfo, 1);
+    vkDepthImageView->create(createInfo);
 }
 
 bool VK_ContextImpl::createCommandBuffers()

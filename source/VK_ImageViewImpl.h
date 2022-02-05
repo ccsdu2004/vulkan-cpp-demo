@@ -10,11 +10,11 @@ public:
     VK_ImageViewImpl(VK_ContextImpl* vkContext);
     ~VK_ImageViewImpl();
 public:
-    bool create(const VkImageViewCreateInfo& viewCreateInfo, uint32_t mipLevels);
+    bool create(const VkImageViewCreateInfo& viewCreateInfo);
     void setSampler(VkSampler sampler)override;
     void release()override;
 public:
-    VkWriteDescriptorSet createWriteDescriptorSet(VkDescriptorSet descriptorSet)const override;
+    VkWriteDescriptorSet createWriteDescriptorSet(VkDescriptorSet descriptorSet, uint32_t binding = 1)const override;
     VkImageView getImageView()const override;
 private:
     VK_ContextImpl* context = nullptr;

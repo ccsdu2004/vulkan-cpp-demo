@@ -21,12 +21,12 @@ void VK_ImageViewImpl::release()
     delete this;
 }
 
-VkWriteDescriptorSet VK_ImageViewImpl::createWriteDescriptorSet(VkDescriptorSet descriptorSet) const
+VkWriteDescriptorSet VK_ImageViewImpl::createWriteDescriptorSet(VkDescriptorSet descriptorSet, uint32_t binding) const
 {
     VkWriteDescriptorSet descriptorWrite{};
     descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
     descriptorWrite.dstSet = descriptorSet;
-    descriptorWrite.dstBinding = 1;
+    descriptorWrite.dstBinding = binding;
     descriptorWrite.dstArrayElement = 0;
     descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
     descriptorWrite.descriptorCount = 1;
@@ -40,7 +40,7 @@ VkImageView VK_ImageViewImpl::getImageView() const
     return textureImageView;
 }
 
-bool VK_ImageViewImpl::create(const VkImageViewCreateInfo &viewCreateInfo, uint32_t mipLevels)
+bool VK_ImageViewImpl::create(const VkImageViewCreateInfo &viewCreateInfo)
 {
     if (vkCreateImageView(context->getDevice(), &viewCreateInfo, context->getAllocation(),
                           &textureImageView) != VK_SUCCESS) {

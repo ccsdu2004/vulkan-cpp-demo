@@ -43,7 +43,7 @@ int main()
 {
     VK_ContextConfig config;
     config.debug = true;
-    config.name = "Texure";
+    config.name = "Clear Image";
 
     context = createVkContext(config);
     context->createWindow(480, 480, true);
@@ -89,6 +89,28 @@ int main()
     ubo->setWriteDataCallback(updateUniformBufferData);
 
     auto image = context->createImage("../images/cat.png");
+
+    auto command = context->getCommandPool()->beginSingleTimeCommands();
+
+    adjustImageLayout(command, image->getImage(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+
+    VkImageSubresourceRange srRange = {};
+    srRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    srRange.baseMipLevel = 0;
+    srRange.levelCount = VK_REMAINING_MIP_LEVELS;
+    srRange.baseArrayLayer = 0;
+    srRange.layerCount = VK_REMAINING_ARRAY_LAYERS;
+
+    VkClearColorValue ccv;
+    ccv.float32[0] = 0.6f;
+    ccv.float32[1] = 0.9f;
+    ccv.float32[2] = 0.2f;
+    ccv.float32[3] = 0.6f;
+
+    vkCmdClearColorImage(command, image->getImage(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, &ccv, 1, &srRange);
+
+    adjustImageLayout(command, image->getImage(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+    context->getCommandPool()->endSingleTimeCommands(command, context->getGraphicQueue());
 
     auto imageViewCreateInfo = VK_ImageView::createImageViewCreateInfo(image->getImage(),
                                VK_FORMAT_R8G8B8A8_SRGB);

@@ -63,4 +63,6 @@ uint32_t findMemoryType(VkPhysicalDevice physicalDevice, uint32_t typeFilter,
                         VkMemoryPropertyFlags properties);
 
 void printUUID(uint8_t *pipelineCacheUUID);
+
+void adjustImageLayout(VkCommandBuffer command, VkImage image, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t levelCount = VK_REMAINING_MIP_LEVELS);
 #endif // VK_UTIL_H

@@ -10,6 +10,7 @@ set(DEMOS
     uniform-buffer2
     sampler
     texture
+    texture-clear-image
     texture-push-descriptor
     model
     model-model

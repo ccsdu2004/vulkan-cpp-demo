@@ -28,8 +28,8 @@ protected:
 
     void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width,
                            uint32_t height);
-    void transitionImageLayout(VkImage image, VkImageLayout oldLayout,
-                               VkImageLayout newLayout, uint32_t mipLevels);
+    void transitionImageLayout(VkImageLayout oldLayout,
+                               VkImageLayout newLayout, uint32_t mipLevels)override;
 private:
     VK_ContextImpl* context = nullptr;
     VkImageCreateInfo createInfo = {};

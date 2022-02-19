@@ -40,11 +40,21 @@ void onFrameSizeChanged(int width, int height)
     pipeline->getDynamicState()->applyDynamicViewport({0, 0, (float)width, (float)height, 0, 1});
 }
 
+void onMouseButtonCallback(int button, int action, int mods)
+{
+    (void)button;
+    (void)mods;
+
+    if(action)
+        context->captureScreenShot();
+}
+
 int main()
 {
     VK_ContextConfig config;
     config.debug = true;
     config.name = "Uniform Demo";
+    config.mouseCallback = onMouseButtonCallback;
 
     context = createVkContext(config);
     context->createWindow(480, 480, true);

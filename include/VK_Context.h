@@ -56,6 +56,8 @@ public:
     virtual void setClearDepthStencil(float depth, uint32_t stencil) = 0;
 
     virtual void setLogicalDeviceFeatures(const VkPhysicalDeviceFeatures &features) = 0;
+
+    virtual void captureScreenShot() = 0;
 public:
     virtual VK_ShaderSet *createShaderSet() = 0;
 
@@ -63,7 +65,8 @@ public:
                                           const std::vector<uint32_t> &indices = std::vector<uint32_t>(), bool indirectDraw = false) = 0;
     virtual VK_Buffer *createVertexBuffer(const std::vector<VK_Vertex> &vertices,
                                           const std::vector<uint32_t> &indices = std::vector<uint32_t>(), bool indirectDraw = false) = 0;
-    virtual VK_Buffer *createVertexBuffer(const std::string &filename, bool zero = true, bool indirectDraw = false) = 0;
+    virtual VK_Buffer *createVertexBuffer(const std::string &filename, bool zero = true,
+                                          bool indirectDraw = false) = 0;
 
     virtual VK_Buffer *createIndirectBuffer(uint32_t instanceCount, uint32_t oneInstanceSize,
                                             uint32_t vertexCount) = 0;
@@ -83,7 +86,7 @@ public:
                               VkBuffer &buffer, VkDeviceMemory &bufferMemory) = 0;
     virtual void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size) = 0;
 
-    virtual VK_CommandPool* getCommandPool()const = 0;
+    virtual VK_CommandPool *getCommandPool()const = 0;
 };
 
 struct VK_ContextConfig {

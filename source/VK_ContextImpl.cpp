@@ -1,5 +1,6 @@
 #include <iostream>
 #include <cstring>
+#include <sstream>
 #include <set>
 #include <cmath>
 #include "VK_ContextImpl.h"
@@ -16,243 +17,6 @@
 #include "VK_DescriptorSets.h"
 #include "VK_Util.h"
 #include <fstream>
-
-void set_image_layout(VkCommandBuffer command, VkImage image, VkImageAspectFlags aspectMask, VkImageLayout old_image_layout,
-                      VkImageLayout new_image_layout, VkPipelineStageFlags src_stages, VkPipelineStageFlags dest_stages)
-{
-    VkImageMemoryBarrier image_memory_barrier = {};
-    image_memory_barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-    image_memory_barrier.pNext = NULL;
-    image_memory_barrier.srcAccessMask = 0;
-    image_memory_barrier.dstAccessMask = 0;
-    image_memory_barrier.oldLayout = old_image_layout;
-    image_memory_barrier.newLayout = new_image_layout;
-    image_memory_barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    image_memory_barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    image_memory_barrier.image = image;
-    image_memory_barrier.subresourceRange.aspectMask = aspectMask;
-    image_memory_barrier.subresourceRange.baseMipLevel = 0;
-    image_memory_barrier.subresourceRange.levelCount = 1;
-    image_memory_barrier.subresourceRange.baseArrayLayer = 0;
-    image_memory_barrier.subresourceRange.layerCount = 1;
-
-    switch (old_image_layout) {
-        case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL:
-            image_memory_barrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-            break;
-
-        case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
-            image_memory_barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-            break;
-
-        case VK_IMAGE_LAYOUT_PREINITIALIZED:
-            image_memory_barrier.srcAccessMask = VK_ACCESS_HOST_WRITE_BIT;
-            break;
-
-        default:
-            break;
-    }
-
-    switch (new_image_layout) {
-        case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
-            image_memory_barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-            break;
-
-        case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
-            image_memory_barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
-            break;
-
-        case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
-            image_memory_barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-            break;
-
-        case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL:
-            image_memory_barrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-            break;
-
-        case VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL:
-            image_memory_barrier.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-            break;
-
-        default:
-            break;
-    }
-
-    vkCmdPipelineBarrier(command, src_stages, dest_stages, 0, 0, NULL, 0, NULL, 1, &image_memory_barrier);
-}
-
-
-void write_ppm(VK_Context* context, VkImage image)
-{
-    std::string filename;
-    VkResult res;
-
-    auto width = context->getSwapChainExtent().width;
-    auto height = context->getSwapChainExtent().height;
-    auto format = context->getSwapChainFormat();
-    auto device = context->getDevice();
-
-    VkImageCreateInfo image_create_info = {};
-    image_create_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-    image_create_info.pNext = NULL;
-    image_create_info.imageType = VK_IMAGE_TYPE_2D;
-    image_create_info.format = context->getSwapChainFormat();
-    image_create_info.extent.width = width;
-    image_create_info.extent.height = height;
-    image_create_info.extent.depth = 1;
-    image_create_info.mipLevels = 1;
-    image_create_info.arrayLayers = 1;
-    image_create_info.samples = VK_SAMPLE_COUNT_1_BIT;
-    image_create_info.tiling = VK_IMAGE_TILING_LINEAR;
-    image_create_info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    image_create_info.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT;
-    image_create_info.queueFamilyIndexCount = 0;
-    image_create_info.pQueueFamilyIndices = NULL;
-    image_create_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-    image_create_info.flags = 0;
-
-    VkMemoryAllocateInfo mem_alloc = {};
-    mem_alloc.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-    mem_alloc.pNext = NULL;
-    mem_alloc.allocationSize = 0;
-    mem_alloc.memoryTypeIndex = 0;
-
-    VkImage mappableImage;
-    VkDeviceMemory mappableMemory;
-
-    res = vkCreateImage(device, &image_create_info, NULL, &mappableImage);
-    assert(res == VK_SUCCESS);
-
-    VkMemoryRequirements mem_reqs;
-    vkGetImageMemoryRequirements(device, mappableImage, &mem_reqs);
-
-    mem_alloc.allocationSize = mem_reqs.size;
-
-    res = vkAllocateMemory(device, &mem_alloc, NULL, &(mappableMemory));
-    assert(res == VK_SUCCESS);
-
-    res = vkBindImageMemory(device, mappableImage, mappableMemory, 0);
-    assert(res == VK_SUCCESS);
-
-    auto command = context->getCommandPool()->beginSingleTimeCommands();
-
-    set_image_layout(command, mappableImage, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_LAYOUT_UNDEFINED,
-                     VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
-
-    set_image_layout(command, image, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-                     VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
-
-    VkImageCopy copy_region;
-    copy_region.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    copy_region.srcSubresource.mipLevel = 0;
-    copy_region.srcSubresource.baseArrayLayer = 0;
-    copy_region.srcSubresource.layerCount = 1;
-    copy_region.srcOffset.x = 0;
-    copy_region.srcOffset.y = 0;
-    copy_region.srcOffset.z = 0;
-    copy_region.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    copy_region.dstSubresource.mipLevel = 0;
-    copy_region.dstSubresource.baseArrayLayer = 0;
-    copy_region.dstSubresource.layerCount = 1;
-    copy_region.dstOffset.x = 0;
-    copy_region.dstOffset.y = 0;
-    copy_region.dstOffset.z = 0;
-    copy_region.extent.width = width;
-    copy_region.extent.height = height;
-    copy_region.extent.depth = 1;
-
-    vkCmdCopyImage(command, image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, mappableImage,
-                   VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copy_region);
-
-    // set_image_layout(command, mappableImage, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL,
-    //                VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_HOST_BIT);
-
-
-    res = vkEndCommandBuffer(command);
-    assert(res == VK_SUCCESS);
-    const VkCommandBuffer cmd_bufs[] = {command};
-    VkFenceCreateInfo fenceInfo;
-    VkFence cmdFence;
-    fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-    fenceInfo.pNext = NULL;
-    fenceInfo.flags = 0;
-    vkCreateFence(device, &fenceInfo, NULL, &cmdFence);
-
-    VkSubmitInfo submit_info[1] = {};
-    submit_info[0].pNext = NULL;
-    submit_info[0].sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-    submit_info[0].waitSemaphoreCount = 0;
-    submit_info[0].pWaitSemaphores = NULL;
-    submit_info[0].pWaitDstStageMask = NULL;
-    submit_info[0].commandBufferCount = 1;
-    submit_info[0].pCommandBuffers = cmd_bufs;
-    submit_info[0].signalSemaphoreCount = 0;
-    submit_info[0].pSignalSemaphores = NULL;
-
-    res = vkQueueSubmit(context->getGraphicQueue(), 1, submit_info, cmdFence);
-    assert(res == VK_SUCCESS);
-
-    do {
-        res = vkWaitForFences(device, 1, &cmdFence, VK_TRUE, ~0);
-    } while (res == VK_TIMEOUT);
-    assert(res == VK_SUCCESS);
-
-
-    vkFreeCommandBuffers(context->getDevice(), context->getCommandPool()->getCommandPool(), 1, &command);
-    // context->getCommandPool()->endSingleTimeCommands(command, context->getGraphicQueue());
-
-    //vkDestroyFence(device, cmdFence, NULL);
-
-    filename = "2.ppm";
-
-    VkImageSubresource subres = {};
-    subres.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    subres.mipLevel = 0;
-    subres.arrayLayer = 0;
-    VkSubresourceLayout sr_layout;
-    vkGetImageSubresourceLayout(device, mappableImage, &subres, &sr_layout);
-
-    char *ptr;
-    res = vkMapMemory(device, mappableMemory, 0, mem_reqs.size, 0, (void **)&ptr);
-    assert(res == VK_SUCCESS);
-
-    ptr += sr_layout.offset;
-    std::ofstream file(filename.c_str(), std::ios::binary);
-
-    file << "P6\n";
-    file << width << " ";
-    file << height << "\n";
-    file << 255 << "\n";
-
-    for (size_t y = 0; y < height; y++) {
-        const int *row = (const int *)ptr;
-        int swapped;
-
-        if (format == VK_FORMAT_B8G8R8A8_UNORM || format == VK_FORMAT_B8G8R8A8_SRGB) {
-            for (size_t x = 0; x < width; x++) {
-                swapped = (*row & 0xff00ff00) | (*row & 0x000000ff) << 16 | (*row & 0x00ff0000) >> 16;
-                file.write((char *)&swapped, 3);
-                row++;
-            }
-        } else if (format == VK_FORMAT_R8G8B8A8_UNORM) {
-            for (size_t x = 0; x < width; x++) {
-                file.write((char *)row, 3);
-                row++;
-            }
-        } else {
-            printf("Unrecognized image format - will not write image files");
-            break;
-        }
-
-        ptr += sr_layout.rowPitch;
-    }
-
-    file.close();
-    vkUnmapMemory(device, mappableMemory);
-    vkDestroyImage(device, mappableImage, NULL);
-    vkFreeMemory(device, mappableMemory, NULL);
-}
-
 
 VK_Context *createVkContext(const VK_ContextConfig &config)
 {
@@ -395,7 +159,7 @@ bool VK_ContextImpl::run()
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();
 
-        if(!drawFrame())
+        if (!drawFrame())
             break;
         //std::cout << "fps:" << 1 / (glfwGetTime() - time) << std::endl;
         //time = glfwGetTime();
@@ -439,6 +203,11 @@ void VK_ContextImpl::setLogicalDeviceFeatures(const VkPhysicalDeviceFeatures &fe
     logicalFeatures = features;
 }
 
+void VK_ContextImpl::captureScreenShot()
+{
+    captureScreen = true;
+}
+
 void VK_ContextImpl::framebufferResizeCallback(GLFWwindow *window, int width, int height)
 {
     auto context = reinterpret_cast<VK_ContextImpl *>(glfwGetWindowUserPointer(window));
@@ -466,7 +235,8 @@ void VK_ContextImpl::cleanupSwapChain()
         vkDestroyFramebuffer(device, framebuffer, getAllocation());
     }
 
-    vkFreeCommandBuffers(device, commandPool->getCommandPool(), static_cast<uint32_t>(commandBuffers.size()),
+    vkFreeCommandBuffers(device, commandPool->getCommandPool(),
+                         static_cast<uint32_t>(commandBuffers.size()),
                          commandBuffers.data());
 
     for (auto pipeline : pipelines)
@@ -715,7 +485,7 @@ bool VK_ContextImpl::createSwapChain()
     createInfo.imageColorSpace = surfaceFormat.colorSpace;
     createInfo.imageExtent = extent;
     createInfo.imageArrayLayers = 1;
-    createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+    createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
 
     QueueFamilyIndices indices = findQueueFamilies(physicalDevice);
     uint32_t queueFamilyIndices[] = {indices.graphicsFamily.value(), indices.presentFamily.value()};
@@ -805,7 +575,8 @@ VK_Buffer *VK_ContextImpl::createVertexBuffer(const std::vector<VK_Vertex> &vert
     return vertexBuffer;
 }
 
-VK_Buffer *VK_ContextImpl::createVertexBuffer(const std::string &filename, bool zero, bool indirectDraw)
+VK_Buffer *VK_ContextImpl::createVertexBuffer(const std::string &filename, bool zero,
+        bool indirectDraw)
 {
     VK_OBJLoader *loader = new VK_OBJLoader(this);
     if (!loader->load(filename, zero)) {
@@ -1001,7 +772,8 @@ void VK_ContextImpl::createColorResources()
     VkFormat colorFormat = swapChainImageFormat;
     bool ok = vkColorImage->createImage(vkSwapChainExtent.width, vkSwapChainExtent.height, msaaSamples,
                                         colorFormat,
-                                        VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+                                        VK_IMAGE_TILING_OPTIMAL,
+                                        VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
                                         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
     if (!ok)
         std::cerr << "create color image failed\n";
@@ -1134,6 +906,28 @@ bool VK_ContextImpl::drawFrame()
         return false;
     }
 
+    currentFrameIndex ++;
+
+    if (captureScreen) {
+        captureScreen = false;
+        std::stringstream stream;
+        stream << "capture-";
+        stream << currentFrameIndex;
+        stream << ".ppm";
+
+        VkImage image = swapChainImages[imageIndex];
+
+        auto cmd = getCommandPool()->beginSingleTimeCommands();
+        adjustImageLayout(cmd, image, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
+        getCommandPool()->endSingleTimeCommands(cmd, graphicsQueue);
+        writeFile(this, stream.str(), image, getSwapChainExtent().width,
+                  getSwapChainExtent().height);
+
+        cmd = getCommandPool()->beginSingleTimeCommands();
+        adjustImageLayout(cmd, image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+        getCommandPool()->endSingleTimeCommands(cmd, graphicsQueue);
+    }
+
     for (auto shaderSet : vkShaders)
         shaderSet->update(imageIndex);
 
@@ -1176,6 +970,7 @@ bool VK_ContextImpl::drawFrame()
     presentInfo.pSwapchains = swapChains;
 
     presentInfo.pImageIndices = &imageIndex;
+
 
     result = vkQueuePresentKHR(presentQueue, &presentInfo);
 
@@ -1330,7 +1125,7 @@ QueueFamilyIndices VK_ContextImpl::findQueueFamilies(VkPhysicalDevice device)
     return indices;
 }
 
-std::vector<const char*> VK_ContextImpl::getRequiredExtensions()
+std::vector<const char *> VK_ContextImpl::getRequiredExtensions()
 {
     uint32_t glfwExtensionCount = 0;
     const char **glfwExtensions = nullptr;

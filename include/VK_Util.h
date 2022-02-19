@@ -64,5 +64,14 @@ uint32_t findMemoryType(VkPhysicalDevice physicalDevice, uint32_t typeFilter,
 
 void printUUID(uint8_t *pipelineCacheUUID);
 
-void adjustImageLayout(VkCommandBuffer command, VkImage image, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t levelCount = VK_REMAINING_MIP_LEVELS);
+void adjustImageLayout(VkCommandBuffer command, VkImage image, VkImageLayout oldLayout,
+                       VkImageLayout newLayout, uint32_t levelCount = VK_REMAINING_MIP_LEVELS);
+
+void writePpm(const std::string &filename, uint32_t width, uint32_t height, VkFormat format,
+              uint32_t rowPitch, char *ptr);
+
+class VK_Context;
+class VK_Image;
+void writeFile(VK_Context *context, const std::string &file, VkImage image, uint32_t width,
+               uint32_t height);
 #endif // VK_UTIL_H

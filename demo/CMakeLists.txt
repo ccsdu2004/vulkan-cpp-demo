@@ -11,6 +11,7 @@ set(DEMOS
     sampler
     texture
     texture-clear-image
+    texture-save-image
     texture-push-descriptor
     model
     model-model
@@ -29,9 +30,9 @@ foreach(var IN LISTS DEMOS)
     message("build ${var}")
     add_executable(${var} main-${var}.cpp)
     if(WIN32)
-        target_link_libraries(${var} vulkan-framwork glfw3 vulkan-1)
+        target_link_libraries(${var} vulkan-framwork glfw3 vulkan-1 tiff)
     else()
-        target_link_libraries(${var} vulkan-framwork glfw vulkan)
+        target_link_libraries(${var} vulkan-framwork glfw vulkan tiff)
     endif()
 endforeach()
 

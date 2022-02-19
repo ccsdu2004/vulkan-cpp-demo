@@ -11,7 +11,12 @@ include_directories("C:\\VulkanSDK\\1.2.189.2\\Include")
 LINK_DIRECTORIES("C:\\VulkanSDK\\1.2.189.2\\Lib")
 LINK_DIRECTORIES("D:\\glfw-3.3.5.bin.WIN64\\lib-mingw-w64")
 
-SET(CMAKE_BUILD_TYPE "Release")
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+set (CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/module")
+
+#SET(CMAKE_BUILD_TYPE "Release")
 SET(CMAKE_CXX_FLAGS_DEBUG "$ENV{CXXFLAGS} -O0 -Wall -g -ggdb -pg")
 SET(CMAKE_CXX_FLAGS_RELEASE "$ENV{CXXFLAGS} -O3 -Wall")
 
@@ -25,6 +30,7 @@ INCLUDE_DIRECTORIES(include)
 INCLUDE_DIRECTORIES(thirdparty)
 INCLUDE_DIRECTORIES(source)
 INCLUDE_DIRECTORIES(./)
+link_directories(./lib)
 
 add_library(
      vulkan-framwork
@@ -88,6 +94,7 @@ add_library(
      source/VK_SecondaryCommandBuffer.cpp
      thirdparty/tiny_obj_loader.cc
      thirdparty/stb_image.cpp
+     thirdparty/tiff.cpp
 )
 
 add_subdirectory(demo)

@@ -60,6 +60,8 @@ public:
     void setClearDepthStencil(float depth, uint32_t stencil)override;
 
     void setLogicalDeviceFeatures(const VkPhysicalDeviceFeatures &features)override;
+
+    void captureScreenShot() override;
 public:
     VK_ShaderSet *createShaderSet()override;
 
@@ -67,7 +69,8 @@ public:
                                   const std::vector<uint32_t> &indices = std::vector<uint32_t>(), bool indirectDraw = false)override;
     VK_Buffer *createVertexBuffer(const std::vector<VK_Vertex> &vertices,
                                   const std::vector<uint32_t> &indices = std::vector<uint32_t>(), bool indirectDraw = false)override;
-    VK_Buffer *createVertexBuffer(const std::string &filename, bool zero = true, bool indirectDraw = false)override;
+    VK_Buffer *createVertexBuffer(const std::string &filename, bool zero = true,
+                                  bool indirectDraw = false)override;
 
     VK_Buffer *createIndirectBuffer(uint32_t instanceCount, uint32_t oneInstanceSize,
                                     uint32_t vertexCount) override;
@@ -92,7 +95,7 @@ public:
                       VkDeviceMemory &bufferMemory)override;
     void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size)override;
 
-    VK_CommandPool* getCommandPool()const override;
+    VK_CommandPool *getCommandPool()const override;
 private:
     void recreateSwapChain();
 
@@ -169,7 +172,7 @@ private:
     VK_PipelineCacheImpl *vkPipelineCache = nullptr;
     std::list<VK_PipelineImpl *> pipelines;
 
-    VK_CommandPool* commandPool = nullptr;
+    VK_CommandPool *commandPool = nullptr;
     std::vector<VkCommandBuffer> commandBuffers;
 
     VK_ImageImpl *vkColorImage = nullptr;
@@ -196,6 +199,9 @@ private:
     std::list<VK_Image *> vkImageList;
     std::list<VK_Sampler *> vkSamplerList;
     std::list<VK_ImageView *> vkImageViewList;
+
+    bool captureScreen = false;
+    uint32_t currentFrameIndex = 0;
 };
 
 #endif // VK_CONTEXTIMPL_H

@@ -10,7 +10,7 @@ VkSamplerCreateInfo VK_Sampler::createSamplerCreateInfo(uint32_t mipLevels)
     samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
     samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
     samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-    samplerInfo.anisotropyEnable = VK_FALSE;//VK_TRUE;
+    samplerInfo.anisotropyEnable = VK_FALSE;
     samplerInfo.maxAnisotropy = 1.0f;
     //deviceProperties.limits.maxSamplerAnisotropy;
     samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
@@ -24,7 +24,7 @@ VkSamplerCreateInfo VK_Sampler::createSamplerCreateInfo(uint32_t mipLevels)
     return samplerInfo;
 }
 
-VK_SamplerImpl::VK_SamplerImpl(VkDevice vkDevice, VK_ContextImpl* vkContext):
+VK_SamplerImpl::VK_SamplerImpl(VkDevice vkDevice, VK_ContextImpl *vkContext):
     device(vkDevice),
     context(vkContext)
 {
@@ -36,10 +36,10 @@ VK_SamplerImpl::~VK_SamplerImpl()
 
 void VK_SamplerImpl::release()
 {
-    if(isRemoveFromContainerWhenRelease())
+    if (isRemoveFromContainerWhenRelease())
         context->removeSampler(this);
 
-    if(textureSampler)
+    if (textureSampler)
         vkDestroySampler(device, textureSampler, context->getAllocation());
 
     delete this;
@@ -50,9 +50,10 @@ VkSampler VK_SamplerImpl::getSampler() const
     return textureSampler;
 }
 
-bool VK_SamplerImpl::create(const VkSamplerCreateInfo& samplerInfo)
+bool VK_SamplerImpl::create(const VkSamplerCreateInfo &samplerInfo)
 {
-    if (vkCreateSampler(device, &samplerInfo, context->getAllocation(), &textureSampler) != VK_SUCCESS) {
+    if (vkCreateSampler(device, &samplerInfo, context->getAllocation(),
+                        &textureSampler) != VK_SUCCESS) {
         std::cerr << "failed to create texture sampler!" << std::endl;
         return false;
     }

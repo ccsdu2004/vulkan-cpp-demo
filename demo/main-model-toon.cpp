@@ -42,7 +42,6 @@ uint32_t updateUniformBufferData(char *&data, uint32_t size)
     ubo.projection = proj * view;
     ubo.model = model;
     memcpy(data, &ubo, sizeof(UBO));
-    time = sin(time);
     return sizeof(UBO);
 }
 

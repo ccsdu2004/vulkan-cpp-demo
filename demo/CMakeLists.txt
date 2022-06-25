@@ -11,6 +11,8 @@ set(DEMOS
     sampler
     texture
     texture-clear-image
+    texture-copy-image
+    texture-blit-image
     texture-save-image
     texture-push-descriptor
     model
@@ -24,6 +26,7 @@ set(DEMOS
     model-push-constant
     model-light
     model-instance
+    secondary-command-buffer
     )
 
 foreach(var IN LISTS DEMOS)

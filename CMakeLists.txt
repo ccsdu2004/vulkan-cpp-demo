@@ -92,6 +92,8 @@ add_library(
      source/VK_CommandPool.cpp
      include/VK_SecondaryCommandBuffer.h
      source/VK_SecondaryCommandBuffer.cpp
+     include/VK_SecondaryCommandBufferCallback.h
+     source/VK_SecondaryCommandBufferCallback.cpp
      thirdparty/tiny_obj_loader.cc
      thirdparty/stb_image.cpp
      thirdparty/tiff.cpp

@@ -48,7 +48,7 @@ int main()
     config.name = "Model";
 
     context = createVkContext(config);
-    context->createWindow(480, 480, true);
+    context->createWindow(960, 720, true);
     context->setOnFrameSizeChanged(onFrameSizeChanged);
 
     VK_Context::VK_Config vkConfig;

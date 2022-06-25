@@ -41,8 +41,6 @@ void onFrameSizeChanged(int width, int height)
     pipeline->getDynamicState()->applyDynamicViewport({0, 0, (float)width, (float)height, 0, 1});
 }
 
-//void writeFile(VK_Context *context, VkImage image, uint32_t width, uint32_t height);
-
 int main()
 {
     VK_ContextConfig config;
@@ -62,19 +60,19 @@ int main()
 
     shaderSet->appendVertexAttributeDescription(0, sizeof (float) * 3, VK_FORMAT_R32G32B32_SFLOAT, 0);
     shaderSet->appendVertexAttributeDescription(1, sizeof (float) * 4, VK_FORMAT_R32G32B32A32_SFLOAT,
-            sizeof(float) * 3);
+                                                sizeof(float) * 3);
     shaderSet->appendVertexAttributeDescription(2, sizeof (float) * 2, VK_FORMAT_R32G32_SFLOAT,
-            sizeof(float) * 7);
+                                                sizeof(float) * 7);
 
     shaderSet->appendVertexInputBindingDescription(9 * sizeof(float), 0, VK_VERTEX_INPUT_RATE_VERTEX);
 
     VkDescriptorSetLayoutBinding uniformBinding = VK_ShaderSet::createDescriptorSetLayoutBinding(0,
-            VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT);
+                                                                                                 VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT);
     shaderSet->addDescriptorSetLayoutBinding(uniformBinding);
 
     auto samplerBinding = VK_ShaderSet::createDescriptorSetLayoutBinding(1,
-                          VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                          VK_SHADER_STAGE_FRAGMENT_BIT);
+                                                                         VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                                                                         VK_SHADER_STAGE_FRAGMENT_BIT);
     auto samplerCreateInfo  = VK_Sampler::createSamplerCreateInfo();
     auto samplerPtr = context->createSampler(samplerCreateInfo);
     VkSampler sampler = samplerPtr->getSampler();
@@ -95,17 +93,19 @@ int main()
     auto image = context->createImage("../images/cat.png");
 
     auto cmd = context->getCommandPool()->beginSingleTimeCommands();
-    adjustImageLayout(cmd, image->getImage(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
+    adjustImageLayout(cmd, image->getImage(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                      VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
     context->getCommandPool()->endSingleTimeCommands(cmd, context->getGraphicQueue());
     writeFile(context, "cat.ppm", image->getImage(), image->getWidth(),
               image->getHeight());
 
     cmd = context->getCommandPool()->beginSingleTimeCommands();
-    adjustImageLayout(cmd, image->getImage(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+    adjustImageLayout(cmd, image->getImage(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                      VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
     context->getCommandPool()->endSingleTimeCommands(cmd, context->getGraphicQueue());
 
     auto imageViewCreateInfo = VK_ImageView::createImageViewCreateInfo(image->getImage(),
-                               VK_FORMAT_R8G8B8A8_SRGB);
+                                                                       VK_FORMAT_R8G8B8A8_SRGB);
     auto imageView = context->createImageView(imageViewCreateInfo);
     shaderSet->addImageView(imageView, 1);
 

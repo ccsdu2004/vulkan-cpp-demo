@@ -16,7 +16,7 @@ int main()
 {
     VK_ContextConfig config;
     config.name = "Hello-Triangle";
-    config.debug = false;
+    config.debug = true;
 
     context = createVkContext(config);
     context->createWindow(640, 480, true);

@@ -21,6 +21,7 @@
 #include "VK_PipelineImpl.h"
 #include "VK_RenderPass.h"
 #include "VK_CommandPool.h"
+#include "VK_SecondaryCommandBufferCallback.h"
 #include "VK_Util.h"
 
 class VK_ContextImpl : public VK_Context
@@ -50,7 +51,11 @@ public:
 
     VK_Pipeline *createPipeline(VK_ShaderSet *shaderSet) override;
     void addPipeline(VK_PipelineImpl *pipeline);
+
     bool createCommandBuffers()override;
+    bool createSecondaryCommandBuffer(uint32_t secondaryCommandBufferCount,
+                                      std::shared_ptr<VK_SecondaryCommandBufferCallback> caller) override;
+
     bool run()override;
 public:
     VkExtent2D getSwapChainExtent()const override;
@@ -174,6 +179,9 @@ private:
 
     VK_CommandPool *commandPool = nullptr;
     std::vector<VkCommandBuffer> commandBuffers;
+    std::vector<VK_SecondaryCommandBuffer *> secondaryCommandBuffers;
+    uint32_t secondaryCommandBufferCount = 0;
+    std::shared_ptr<VK_SecondaryCommandBufferCallback> secondaryCommandBufferCaller;
 
     VK_ImageImpl *vkColorImage = nullptr;
     VK_ImageViewImpl *vkColorImageView = nullptr;

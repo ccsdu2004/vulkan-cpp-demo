@@ -17,11 +17,11 @@ public:
     virtual VkPipelineVertexInputStateCreateInfo getVertexInputStateCreateInfo()const = 0;
 
     virtual void setInputAssemblyStateCreateInfo(const VkPipelineInputAssemblyStateCreateInfo
-            &createInfo) = 0;
+                                                 &createInfo) = 0;
     virtual VkPipelineInputAssemblyStateCreateInfo getInputAssemblyStateCreateInfo()const = 0;
 
     virtual void setRasterizationStateCreateInfo(const VkPipelineRasterizationStateCreateInfo
-            &createInfo) = 0;
+                                                 &createInfo) = 0;
     virtual VkPipelineRasterizationStateCreateInfo getRasterizationStateCreateInfo()const = 0;
 
     virtual VkPipelineDepthStencilStateCreateInfo getDepthStencilStateCreateInfo()const = 0;
@@ -45,7 +45,7 @@ public:
     virtual VK_DynamicState *getDynamicState()const = 0;
 public:
     virtual void addPushConstant(const VkPushConstantRange &constantRange, const char *data) = 0;
-    virtual void addPushDescriptor(const VkWriteDescriptorSet& descriptor) = 0;;
+    virtual void addPushDescriptor(const VkWriteDescriptorSet &descriptor) = 0;;
     virtual bool create() = 0;
     virtual void addRenderBuffer(VK_Buffer *buffer) = 0;
     virtual VK_Pipeline *fork(VK_ShaderSet *shaderSet = nullptr) = 0;

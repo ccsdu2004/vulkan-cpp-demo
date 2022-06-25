@@ -74,4 +74,5 @@ class VK_Context;
 class VK_Image;
 void writeFile(VK_Context *context, const std::string &file, VkImage image, uint32_t width,
                uint32_t height);
+
 #endif // VK_UTIL_H

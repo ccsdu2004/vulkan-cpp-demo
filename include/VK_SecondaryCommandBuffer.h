@@ -13,6 +13,7 @@ public:
     ~VK_SecondaryCommandBuffer();
 public:
     bool create(uint32_t count);
+    VkCommandBuffer at(uint32_t index);
     void executeCommandBuffer(VkCommandBuffer command, VkFramebuffer frameBuffer);
     void release() override;
 private:

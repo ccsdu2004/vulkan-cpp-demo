@@ -5,18 +5,18 @@
 using namespace std;
 
 const std::vector<float> vertices1 = {
-    0.0f, -0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 0.5f,
-    0.5f, 0.5f, 0.0f, 0.0f, 0.0f, 0.0f, 0.5f,
-    -0.5f, 0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 0.5f
+    0.0f, -0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 0.4f,
+    0.5f, 0.5f, 0.0f, 0.0f, 0.0f, 1.0f, 0.4f,
+    -0.5f, 0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 0.4f
 };
 
 const std::vector<float> vertices2 = {
-    -0.5f, -0.3f, 0.0f, 1.0f, 1.0f, 1.0f, 0.5f,
-        0.5f, -0.3f, 0.0f, 1.0f, 1.0f, 1.0f, 0.5f,
-        0.5f, 0.3f, 0.0f, 1.0f, 1.0f, 1.0f, 0.5f,
-        0.5f, 0.3f, 0.0f, 1.0f, 1.0f, 1.0f, 0.5f,
-        -0.5f, 0.3f, 0.0f, 1.0f, 1.0f, 1.0f, 0.5f,
-        -0.5f, -0.3f, 0.0f, 1.0f, 1.0f, 1.0f, 0.5f
+    -0.5f, -0.3f, 0.0f, 0.0f, 1.0f, 1.0f, 0.6f,
+        0.5f, -0.3f, 0.0f, 1.0f, 1.0f, 0.0f, 0.6f,
+        0.5f,  0.3f, 0.0f, 1.0f, 0.0f, 1.0f, 0.6f,
+        0.5f,  0.3f, 0.0f, 1.0f, 0.0f, 1.0f, 0.6f,
+        -0.5f, 0.3f, 0.0f, 1.0f, 1.0f, 1.0f, 0.6f,
+        -0.5f, -0.3f, 0.0f, 0.0f, 1.0f, 1.0f, 0.6f
     };
 
 VK_Context *context = nullptr;
@@ -33,21 +33,23 @@ void onMouseButtonCallback(int button, int action, int mods)
 
     if (action) {
         blend.blendEnable = VK_TRUE;
-        blend.colorWriteMask = 0xff;
+        blend.colorWriteMask = ( VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT
+                                 | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT);
         blend.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
         blend.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
         blend.colorBlendOp = VK_BLEND_OP_ADD;
-        blend.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
-        blend.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+        blend.srcAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+        blend.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
         blend.alphaBlendOp = VK_BLEND_OP_ADD;
+
         createInfo.pAttachments = &blend;
         pipeline->setColorBlendStateCreateInfo(createInfo);
-        context->setClearColor(0, 0, 0.2, 0.3);
+        context->setClearColor(0.8, 0.8, 0.8, 0.8);
     } else {
         blend.blendEnable = VK_FALSE;
         createInfo.pAttachments = &blend;
         pipeline->setColorBlendStateCreateInfo(createInfo);
-        context->setClearColor(0, 0.3, 0.2, 0.3);
+        context->setClearColor(0.6, 0.6, 0.6, 0.6);
     }
 }
 
@@ -56,10 +58,14 @@ int main()
     VK_ContextConfig config;
     config.debug = true;
     config.name = "Blend Color";
-    //config.mouseCallback = &onMouseButtonCallback;
+    config.mouseCallback = &onMouseButtonCallback;
 
     context = createVkContext(config);
     context->createWindow(640, 480, true);
+    VkPhysicalDeviceFeatures deviceFeatures{};
+    deviceFeatures.independentBlend = VK_TRUE;
+    deviceFeatures.logicOp = VK_TRUE;
+    context->setLogicalDeviceFeatures(deviceFeatures);
 
     VK_Context::VK_Config vkConfig;
     context->initVulkanDevice(vkConfig);
@@ -70,7 +76,7 @@ int main()
 
     shaderSet->appendVertexAttributeDescription(0, sizeof (float) * 3, VK_FORMAT_R32G32B32_SFLOAT, 0);
     shaderSet->appendVertexAttributeDescription(1, sizeof (float) * 4, VK_FORMAT_R32G32B32A32_SFLOAT,
-            sizeof(float) * 3);
+                                                sizeof(float) * 3);
     shaderSet->appendVertexInputBindingDescription(7 * sizeof(float), 0, VK_VERTEX_INPUT_RATE_VERTEX);
 
     if (!shaderSet->isValid()) {

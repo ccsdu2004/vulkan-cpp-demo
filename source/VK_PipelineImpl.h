@@ -2,6 +2,7 @@
 #define VK_PIPLELINEIMPL_H
 #include <list>
 #include <memory>
+#include <functional>
 #include <VK_Pipeline.h>
 #include "VK_PushDescriptor.h"
 #include "VK_DescriptorSets.h"
@@ -9,6 +10,7 @@
 #include "VK_DescriptorPool.h"
 #include "VK_PipelineLayout.h"
 #include "VK_PushDescriptor.h"
+#include "VK_SecondaryCommandBufferCallback.h"
 
 class VK_ContextImpl;
 class VK_DynamicStateImpl;
@@ -53,7 +55,7 @@ public:
 public:
     void prepare();
     void addPushConstant(const VkPushConstantRange &constantRange, const char *data) override;
-    void addPushDescriptor(const VkWriteDescriptorSet& descriptor)override;
+    void addPushDescriptor(const VkWriteDescriptorSet &descriptor)override;
     virtual bool create() override;
     void addRenderBuffer(VK_Buffer *buffer)override;
     VK_Pipeline *fork(VK_ShaderSet *shaderSet) override;
@@ -62,6 +64,9 @@ public:
     void setNeedRecreate();
 
     void render(VkCommandBuffer buffer, uint32_t index);
+    void render(VkCommandBuffer buffer, uint32_t index,
+                std::shared_ptr<VK_SecondaryCommandBufferCallback> caller,
+                uint32_t current, uint32_t total);
 
     void release()override;
 protected:

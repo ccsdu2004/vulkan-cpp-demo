@@ -1,5 +1,6 @@
 #include <VK_SecondaryCommandBuffer.h>
 #include <VK_Context.h>
+#include <iostream>
 
 VK_SecondaryCommandBuffer::VK_SecondaryCommandBuffer(VK_Context *vkContext, VkCommandPool pool):
     context(vkContext),
@@ -24,7 +25,13 @@ bool VK_SecondaryCommandBuffer::create(uint32_t count)
     return vkAllocateCommandBuffers(context->getDevice(), &cmdAlloc, buffers.data()) == VK_SUCCESS;
 }
 
-void VK_SecondaryCommandBuffer::executeCommandBuffer(VkCommandBuffer command, VkFramebuffer frameBuffer)
+VkCommandBuffer VK_SecondaryCommandBuffer::at(uint32_t index)
+{
+    return buffers.at(index);
+}
+
+void VK_SecondaryCommandBuffer::executeCommandBuffer(VkCommandBuffer command,
+        VkFramebuffer frameBuffer)
 {
     VkRenderPassBeginInfo rpBegin;
     rpBegin.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -35,9 +42,10 @@ void VK_SecondaryCommandBuffer::executeCommandBuffer(VkCommandBuffer command, Vk
     rpBegin.renderArea.offset.y = 0;
     rpBegin.renderArea.extent.width = context->getSwapChainExtent().width;
     rpBegin.renderArea.extent.height = context->getSwapChainExtent().height;
-    rpBegin.clearValueCount = 1;
+    rpBegin.clearValueCount = 2;
 
     VkClearValue cv[2] = {};
+    cv[1].depthStencil = {1.0f, 0};
     rpBegin.pClearValues = cv;
 
     vkCmdBeginRenderPass(command, &rpBegin, VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS);

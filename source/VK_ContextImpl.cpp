@@ -15,6 +15,7 @@
 #include "VK_ImageViewImpl.h"
 #include "VK_SamplerImpl.h"
 #include "VK_DescriptorSets.h"
+#include "VK_SecondaryCommandBuffer.h"
 #include "VK_Util.h"
 #include <fstream>
 
@@ -231,6 +232,10 @@ void VK_ContextImpl::cleanupSwapChain()
     vkColorImageView->release();
     vkColorImage->release();
 
+    for (auto comandBuffer : secondaryCommandBuffers)
+        comandBuffer->release();
+    commandBuffers.clear();
+
     for (auto framebuffer : swapChainFramebuffers) {
         vkDestroyFramebuffer(device, framebuffer, getAllocation());
     }
@@ -328,6 +333,7 @@ void VK_ContextImpl::recreateSwapChain()
     createDepthResources();
     createFramebuffers();
 
+    createSecondaryCommandBuffer(secondaryCommandBufferCount, secondaryCommandBufferCaller);
     createCommandBuffers();
 
     imagesInFlight.resize(swapChainImages.size(), VK_NULL_HANDLE);
@@ -485,7 +491,8 @@ bool VK_ContextImpl::createSwapChain()
     createInfo.imageColorSpace = surfaceFormat.colorSpace;
     createInfo.imageExtent = extent;
     createInfo.imageArrayLayers = 1;
-    createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+    createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
+                            VK_IMAGE_USAGE_SAMPLED_BIT;
 
     QueueFamilyIndices indices = findQueueFamilies(physicalDevice);
     uint32_t queueFamilyIndices[] = {indices.graphicsFamily.value(), indices.presentFamily.value()};
@@ -826,30 +833,81 @@ bool VK_ContextImpl::createCommandBuffers()
             std::cerr << "failed to begin recording command buffer!" << std::endl;
         }
 
-        VkRenderPassBeginInfo renderPassInfo{};
-        renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-        renderPassInfo.renderPass = renderPass->getRenderPass();
-        renderPassInfo.framebuffer = swapChainFramebuffers[i];
-        renderPassInfo.renderArea.offset = {0, 0};
-        renderPassInfo.renderArea.extent = vkSwapChainExtent;
+        if (!secondaryCommandBuffers.empty()) {
+            auto current = secondaryCommandBuffers.at(i);
+            current->executeCommandBuffer(commandBuffers[i], swapChainFramebuffers.at(i));
+        } else {
+            VkRenderPassBeginInfo renderPassInfo{};
+            renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+            renderPassInfo.renderPass = renderPass->getRenderPass();
+            renderPassInfo.framebuffer = swapChainFramebuffers[i];
+            renderPassInfo.renderArea.offset = {0, 0};
+            renderPassInfo.renderArea.extent = vkSwapChainExtent;
 
-        std::array<VkClearValue, 2> clearValues{};
-        memcpy((char *)&clearValues[0], &vkClearValue, sizeof(vkClearValue));
-        clearValues[1].depthStencil = {1.0f, 0};
+            std::array<VkClearValue, 2> clearValues{};
+            memcpy((char *)&clearValues[0], &vkClearValue, sizeof(vkClearValue));
+            clearValues[1].depthStencil = {1.0f, 0};
 
-        renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
-        renderPassInfo.pClearValues = clearValues.data();
+            renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
+            renderPassInfo.pClearValues = clearValues.data();
 
-        vkCmdBeginRenderPass(commandBuffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+            vkCmdBeginRenderPass(commandBuffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-        for (auto pipeline : pipelines) {
-            pipeline->render(commandBuffers[i], i);
+            for (auto pipeline : pipelines) {
+                pipeline->render(commandBuffers[i], i);
+            }
+
+            vkCmdEndRenderPass(commandBuffers[i]);
         }
-
-        vkCmdEndRenderPass(commandBuffers[i]);
 
         if (vkEndCommandBuffer(commandBuffers[i]) != VK_SUCCESS) {
             std::cout << "failed to record command buffer!" << std::endl;
+        }
+    }
+    return true;
+}
+
+bool VK_ContextImpl::createSecondaryCommandBuffer(uint32_t secondaryCommandBufferCount,
+        std::shared_ptr<VK_SecondaryCommandBufferCallback> caller)
+{
+    if (secondaryCommandBufferCount == 0)
+        return false;
+
+    this->secondaryCommandBufferCount = secondaryCommandBufferCount;
+    secondaryCommandBufferCaller = caller;
+
+    secondaryCommandBuffers.resize(swapChainFramebuffers.size());
+    for (uint32_t i = 0; i < swapChainFramebuffers.size(); i++) {
+        secondaryCommandBuffers[i] = new VK_SecondaryCommandBuffer(this,
+                getCommandPool()->getCommandPool());
+        secondaryCommandBuffers[i]->create(secondaryCommandBufferCount);
+
+        VkCommandBufferInheritanceInfo info = {};
+        info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO,
+        info.pNext = NULL;
+        info.renderPass = getRenderPass();
+        info.subpass = 0;
+        info.framebuffer = swapChainFramebuffers[i];
+        info.occlusionQueryEnable = VK_FALSE;
+        info.queryFlags = 0;
+        info.pipelineStatistics = 0;
+
+        VkCommandBufferBeginInfo secondaryCommandBufferBeginInfo = {};
+        secondaryCommandBufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+        secondaryCommandBufferBeginInfo.pNext = NULL;
+        secondaryCommandBufferBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT |
+                                                VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT;
+        secondaryCommandBufferBeginInfo.pInheritanceInfo = &info;
+
+        for (uint32_t j = 0; j < secondaryCommandBufferCount; j++) {
+            auto commandBuffer = secondaryCommandBuffers[i]->at(j);
+            vkBeginCommandBuffer(commandBuffer, &secondaryCommandBufferBeginInfo);
+
+            for (auto pipeline : pipelines) {
+                pipeline->render(commandBuffer, i, caller, j, secondaryCommandBufferCount);
+            }
+
+            vkEndCommandBuffer(commandBuffer);
         }
     }
     return true;
@@ -913,18 +971,20 @@ bool VK_ContextImpl::drawFrame()
         std::stringstream stream;
         stream << "capture-";
         stream << currentFrameIndex;
-        stream << ".ppm";
+        stream << ".tif";
 
         VkImage image = swapChainImages[imageIndex];
 
         auto cmd = getCommandPool()->beginSingleTimeCommands();
-        adjustImageLayout(cmd, image, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
+        adjustImageLayout(cmd, image, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+                          VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
         getCommandPool()->endSingleTimeCommands(cmd, graphicsQueue);
         writeFile(this, stream.str(), image, getSwapChainExtent().width,
                   getSwapChainExtent().height);
 
         cmd = getCommandPool()->beginSingleTimeCommands();
-        adjustImageLayout(cmd, image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+        adjustImageLayout(cmd, image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                          VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
         getCommandPool()->endSingleTimeCommands(cmd, graphicsQueue);
     }
 

@@ -29,7 +29,7 @@ VK_ShaderSet *VK_PipelineImpl::getShaderSet() const
 }
 
 void VK_PipelineImpl::setVertexInputStateCreateInfo(const VkPipelineVertexInputStateCreateInfo
-        &createInfo)
+                                                    &createInfo)
 {
     vertexInputStateCreateInfo = createInfo;
     needUpdate = true;
@@ -44,7 +44,7 @@ VkPipelineVertexInputStateCreateInfo VK_PipelineImpl::getVertexInputStateCreateI
 }
 
 void VK_PipelineImpl::setInputAssemblyStateCreateInfo(const VkPipelineInputAssemblyStateCreateInfo
-        &createInfo)
+                                                      &createInfo)
 {
     inputAssemblyStateCreateInfo = createInfo;
     needUpdate = true;
@@ -59,7 +59,7 @@ VkPipelineInputAssemblyStateCreateInfo VK_PipelineImpl::getInputAssemblyStateCre
 }
 
 void VK_PipelineImpl::setRasterizationStateCreateInfo(const VkPipelineRasterizationStateCreateInfo
-        &createInfo)
+                                                      &createInfo)
 {
     rasterizationStateCreateInfo = createInfo;
     needUpdate = true;
@@ -74,7 +74,7 @@ VkPipelineRasterizationStateCreateInfo VK_PipelineImpl::getRasterizationStateCre
 }
 
 void VK_PipelineImpl::setDepthStencilStateCreateInfo(const VkPipelineDepthStencilStateCreateInfo
-        &createInfo)
+                                                     &createInfo)
 {
     depthStencilStateCreateInfo = createInfo;
     needUpdate = true;
@@ -89,7 +89,7 @@ VkPipelineDepthStencilStateCreateInfo VK_PipelineImpl::getDepthStencilStateCreat
 }
 
 void VK_PipelineImpl::setTessellationStateCreateInfo(const VkPipelineTessellationStateCreateInfo
-        &createInfo)
+                                                     &createInfo)
 {
     tessellationStateCreateInfo = createInfo;
     needUpdate = true;
@@ -104,7 +104,7 @@ VkPipelineTessellationStateCreateInfo VK_PipelineImpl::getTessellationStateCreat
 }
 
 void VK_PipelineImpl::setMultisampleStateCreateInfo(const VkPipelineMultisampleStateCreateInfo
-        &createInfo)
+                                                    &createInfo)
 {
     multiSampleStateCreateInfo = createInfo;
     needUpdate = true;
@@ -119,7 +119,7 @@ VkPipelineMultisampleStateCreateInfo VK_PipelineImpl::getMultisampleStateCreateI
 }
 
 void VK_PipelineImpl::setColorBlendStateCreateInfo(const VkPipelineColorBlendStateCreateInfo
-        &createInfo)
+                                                   &createInfo)
 {
     colorBlendStateCreateInfo = createInfo;
     needUpdate = true;
@@ -127,9 +127,11 @@ void VK_PipelineImpl::setColorBlendStateCreateInfo(const VkPipelineColorBlendSta
 
 VkPipelineColorBlendStateCreateInfo VK_PipelineImpl::getColorBlendStateCreateInfo() const
 {
-    if (colorBlendStateCreateInfo.has_value())
+    if (colorBlendStateCreateInfo.has_value()) {
         return colorBlendStateCreateInfo.value();
+    }
     assert(parent);
+
     return parent->getColorBlendStateCreateInfo();
 }
 
@@ -173,19 +175,38 @@ void VK_PipelineImpl::setNeedRecreate()
     needUpdate = true;
 }
 
-void VK_PipelineImpl::render(VkCommandBuffer command, uint32_t index)
+void VK_PipelineImpl::render(VkCommandBuffer buffer, uint32_t index)
 {
-    descriptorSets->bind(command, pipelineLayout->getPipelineLayout(), index);
-    pipelineLayout->pushConst(command);
+    descriptorSets->bind(buffer, pipelineLayout->getPipelineLayout(), index);
+    pipelineLayout->pushConst(buffer);
 
-    vkDynamicState->apply(command);
-    vkCmdBindPipeline(command, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+    vkDynamicState->apply(buffer);
+    vkCmdBindPipeline(buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 
-    if(pushDescriptor)
-        pushDescriptor->push(command, pipelineLayout->getPipelineLayout());
+    if (pushDescriptor)
+        pushDescriptor->push(buffer, pipelineLayout->getPipelineLayout());
 
-    for (auto buffer : buffers)
-        buffer->render(command);
+    for (auto currentBuffer : buffers)
+        currentBuffer->render(buffer);
+}
+
+void VK_PipelineImpl::render(VkCommandBuffer buffer, uint32_t index,
+                             std::shared_ptr<VK_SecondaryCommandBufferCallback> caller, uint32_t current, uint32_t total)
+{
+    descriptorSets->bind(buffer, pipelineLayout->getPipelineLayout(), index);
+    pipelineLayout->pushConst(buffer);
+
+    vkDynamicState->apply(buffer);
+    vkCmdBindPipeline(buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+
+    if (pushDescriptor)
+        pushDescriptor->push(buffer, pipelineLayout->getPipelineLayout());
+
+    if (caller)
+        caller->execute(context, buffer, current, total);
+
+    for (auto currentBuffer : buffers)
+        currentBuffer->render(buffer);
 }
 
 void VK_PipelineImpl::release()
@@ -214,7 +235,7 @@ void VK_PipelineImpl::addPushConstant(const VkPushConstantRange &constantRange, 
 
 void VK_PipelineImpl::addPushDescriptor(const VkWriteDescriptorSet &descriptor)
 {
-    if(!pushDescriptor)
+    if (!pushDescriptor)
         pushDescriptor = std::make_shared<VK_PushDescriptor>(context);
 
     pushDescriptor->addDescriptor(descriptor);

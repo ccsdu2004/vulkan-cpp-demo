@@ -19,6 +19,7 @@ class VK_Context;
 class VK_PipelineCache;
 class VK_DynamicState;
 class VK_Pipeline;
+class VK_SecondaryCommandBufferCallback;
 class VulKanAppData;
 
 class VK_Context : public VK_Deleter
@@ -29,7 +30,7 @@ public:
 
     struct VK_Config {
         int maxFramsInFlight = 2;
-        std::string pipelineCacheFile = "pipelineCache";
+        std::string pipelineCacheFile = "../pipelineCache/pipelineCache";
         std::vector<const char *> enabledExtensions;
     };
 
@@ -47,6 +48,8 @@ public:
 
     virtual VK_Pipeline *createPipeline(VK_ShaderSet *shaderSet) = 0;
     virtual bool createCommandBuffers() = 0;
+    virtual bool createSecondaryCommandBuffer(uint32_t secondaryCommandBufferCount,
+                                              std::shared_ptr<VK_SecondaryCommandBufferCallback> caller) = 0;
     virtual bool run() = 0;
 public:
     virtual VkExtent2D getSwapChainExtent()const = 0;

@@ -22,7 +22,7 @@ public:
     void appendVertexAttributeDescription(uint32_t index, uint32_t size, VkFormat format,
                                           uint32_t offset, uint32_t binding = 0) override;
     void appendVertexInputBindingDescription(uint32_t stride, uint32_t binding = 0,
-            VkVertexInputRate inputRate = VK_VERTEX_INPUT_RATE_VERTEX)override;
+                                             VkVertexInputRate inputRate = VK_VERTEX_INPUT_RATE_VERTEX)override;
 
     size_t getVertexAttributeDescriptionCount()const override;
     const VkVertexInputAttributeDescription *getVertexAttributeDescriptionData()const override;
@@ -42,6 +42,8 @@ public:
                    const char *entryPoint = "main")override;
 public:
     VK_UniformBuffer *addUniformBuffer(uint32_t binding, uint32_t bufferSize)override;
+    VK_UniformBuffer *addTexelBuffer(uint32_t binding, uint32_t bufferSize) override;
+
     void initUniformBuffer() override;
     void clearUniformBuffer()override;
 

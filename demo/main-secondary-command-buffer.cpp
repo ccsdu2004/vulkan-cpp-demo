@@ -23,13 +23,14 @@ public:
         auto width = context->getSwapChainExtent().width;
         auto height = context->getSwapChainExtent().height;
 
+        int n = sqrt(COMMAND_BUFFER_COUNT);
         VkViewport viewport;
         viewport.minDepth = 0.0f;
         viewport.maxDepth = 1.0f;
-        viewport.x = (current % 8) * width / 8;
-        viewport.y = (current / 8) * height / 8;
-        viewport.width = width / 8;
-        viewport.height = height / 8;
+        viewport.x = (current % n) * width / n;
+        viewport.y = (current / n) * height / n;
+        viewport.width = width / n;
+        viewport.height = height / n;
 
         vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
     }
@@ -146,3 +147,11 @@ int main()
     return 0;
 }
 
+class Object;
+
+class TableLayout
+{
+public:
+    TableLayout(uint32_t row,uint32_t col);
+    void addObject(uint32_t row, uint32_t col, std::shared_ptr<Object> object);
+};

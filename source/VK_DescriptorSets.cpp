@@ -39,7 +39,8 @@ void VK_DescriptorSets::update(const std::list<VK_UniformBuffer *> &uniformBuffe
             descriptorWrites.push_back(buffer->createWriteDescriptorSet(i, descriptorSets[i]));
 
         for (auto imageView : imageViews) {
-            descriptorWrites.push_back(imageView.first->createWriteDescriptorSet(descriptorSets[i], imageView.second));
+            descriptorWrites.push_back(imageView.first->createWriteDescriptorSet(descriptorSets[i],
+                                                                                 imageView.second));
         }
 
         vkUpdateDescriptorSets(context->getDevice(), descriptorWrites.size(), &descriptorWrites[0], 0,

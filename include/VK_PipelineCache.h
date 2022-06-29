@@ -7,8 +7,8 @@
 class VK_PipelineCache : public VK_Deleter
 {
 public:
-    virtual VkPipelineCache getPipelineCache()const = 0;
-    virtual bool saveGraphicsPiplineCache(const std::string& file) = 0;
+    [[nodiscard]] virtual VkPipelineCache getPipelineCache()const = 0;
+    virtual bool saveGraphicsPiplineCache(const std::string &file) = 0;
     virtual bool isValidCacheData(const std::string &filename, const char *buffer,
                                   uint32_t size) = 0;
 };

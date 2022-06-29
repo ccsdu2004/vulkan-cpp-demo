@@ -51,7 +51,7 @@ struct SwapChainSupportDetails {
 
 std::vector<char> readDataFromFile(const std::string &filename);
 
-VkSampleCountFlagBits getMaxUsableSampleCount(VkPhysicalDevice physicalDevice);
+[[nodiscard]] VkSampleCountFlagBits getMaxUsableSampleCount(VkPhysicalDevice physicalDevice);
 
 VkFormat findSupportedFormat(VkPhysicalDevice physicalDevice,
                              const std::vector<VkFormat> &candidates,

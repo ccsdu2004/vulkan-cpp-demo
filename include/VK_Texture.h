@@ -7,7 +7,7 @@ class VK_Sampler : public VK_Deleter
 {
 public:
     static VkSamplerCreateInfo createSamplerCreateInfo(uint32_t mipLevels = 0);
-    virtual VkSampler getSampler()const = 0;
+    [[nodiscard]] virtual VkSampler getSampler()const = 0;
 };
 
 #endif

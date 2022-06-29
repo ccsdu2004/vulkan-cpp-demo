@@ -21,6 +21,7 @@
 #include "VK_PipelineImpl.h"
 #include "VK_RenderPass.h"
 #include "VK_CommandPool.h"
+#include "VK_QueryPoolImpl.h"
 #include "VK_SecondaryCommandBufferCallback.h"
 #include "VK_Util.h"
 
@@ -40,6 +41,8 @@ public:
 
     bool initVulkanDevice(const VK_Config &config)override;
     VkDevice getDevice()const override;
+    VkPhysicalDeviceProperties getPhysicalDeviceProperties()const override;
+
     VK_PipelineCache *getPipelineCache()const override;
     VkPhysicalDevice getPhysicalDevice()const override;
     size_t getSwapImageCount()const override;
@@ -100,6 +103,10 @@ public:
                       VkDeviceMemory &bufferMemory)override;
     void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size)override;
 
+    VK_QueryPool *createQueryPool(uint32_t count,
+                                  VkQueryPipelineStatisticFlags flag,
+                                  std::function<void(const std::vector<uint64_t>&)> callback) override;
+
     VK_CommandPool *getCommandPool()const override;
 private:
     void recreateSwapChain();
@@ -138,6 +145,8 @@ private:
     bool checkDeviceExtensionSupport(VkPhysicalDevice device);
     QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
     std::vector<const char *> getRequiredExtensions();
+
+    void captureImage(uint32_t imageIndex);
 private:
     VK_ContextConfig appConfig;
     VK_Config vkConfig;
@@ -188,6 +197,8 @@ private:
 
     VK_ImageImpl *vkDepthImage = nullptr;
     VK_ImageViewImpl *vkDepthImageView = nullptr;
+
+    VK_QueryPoolImpl *queryPool = nullptr;
 
     std::vector<VkSemaphore> imageAvailableSemaphores;
     std::vector<VkSemaphore> renderFinishedSemaphores;

@@ -15,7 +15,7 @@ public:
     virtual ~VK_Buffer();
 public:
     virtual size_t getDataCount() const = 0;
-    VK_Context *getContext()const;
+    [[nodiscard]] VK_Context *getContext()const;
     virtual void release() override;
 public:
     virtual void render(VkCommandBuffer command) = 0;

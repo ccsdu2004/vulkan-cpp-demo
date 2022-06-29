@@ -1,8 +1,8 @@
-#include "VK_UniformBufferImpl.h"
 #include <cstring>
 #include <chrono>
 #include <glm/mat4x4.hpp>
 #include <glm/gtx/transform.hpp>
+#include <VK_UniformBufferImpl.h>
 
 VK_UniformBufferImpl::VK_UniformBufferImpl(VK_ContextImpl *vkContext, uint32_t binding,
                                            uint32_t uboSize):
@@ -20,12 +20,14 @@ VK_UniformBufferImpl::~VK_UniformBufferImpl()
 void VK_UniformBufferImpl::initBuffer(uint32_t swapImageChainSize)
 {
     clearBuffer();
+
     uniformBuffers.resize(swapImageChainSize);
     uniformBuffersMemory.resize(swapImageChainSize);
     bufferInfos.resize(swapImageChainSize);
 
     for (size_t i = 0; i < swapImageChainSize; i++) {
-        context->createBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+        context->createBuffer(bufferSize,
+                              VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
                               VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformBuffers[i],
                               uniformBuffersMemory[i]);
         bufferInfos[i].buffer = uniformBuffers[i];
@@ -45,9 +47,12 @@ VkWriteDescriptorSet VK_UniformBufferImpl::createWriteDescriptorSet(uint32_t ind
     descriptorWrite.dstSet = descriptorSet;
     descriptorWrite.dstBinding = bindingId;
     descriptorWrite.dstArrayElement = 0;
-    descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    descriptorWrite.descriptorType =
+        VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     descriptorWrite.descriptorCount = 1;
     descriptorWrite.pBufferInfo = &bufferInfos[index];
+
+    descriptorWrite.pTexelBufferView = nullptr;
     return descriptorWrite;
 }
 

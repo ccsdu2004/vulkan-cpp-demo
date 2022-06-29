@@ -1,11 +1,12 @@
 #include <vector>
 #include <numeric>
 #include <iostream>
-#include "VK_ContextImpl.h"
-#include "VK_ShaderSetImpl.h"
-#include "VK_DescriptorSets.h"
-#include "VK_UniformBufferImpl.h"
-#include "VK_Util.h"
+#include <VK_ContextImpl.h>
+#include <VK_ShaderSetImpl.h>
+#include <VK_DescriptorSets.h>
+#include <VK_UniformBufferImpl.h>
+#include <VK_TexelBuffer.h>
+#include <VK_Util.h>
 
 VK_ShaderSetImpl::VK_ShaderSetImpl(VK_ContextImpl *vkContext):
     context(vkContext)
@@ -27,8 +28,9 @@ void VK_ShaderSetImpl::release()
     delete this;
 }
 
-void VK_ShaderSetImpl::appendVertexAttributeDescription(uint32_t index, uint32_t size, VkFormat format,
-        uint32_t offset, uint32_t binding)
+void VK_ShaderSetImpl::appendVertexAttributeDescription(uint32_t index, uint32_t size,
+                                                        VkFormat format,
+                                                        uint32_t offset, uint32_t binding)
 {
     VkVertexInputAttributeDescription description;
     description.binding = binding;
@@ -40,7 +42,7 @@ void VK_ShaderSetImpl::appendVertexAttributeDescription(uint32_t index, uint32_t
 }
 
 void VK_ShaderSetImpl::appendVertexInputBindingDescription(uint32_t stride, uint32_t binding,
-        VkVertexInputRate inputRate)
+                                                           VkVertexInputRate inputRate)
 {
     vertexInputBindingDescriptions.push_back({binding, stride, inputRate});
 }
@@ -131,6 +133,14 @@ bool VK_ShaderSetImpl::addShader(const std::string &spvFile, VkShaderStageFlagBi
 VK_UniformBuffer *VK_ShaderSetImpl::addUniformBuffer(uint32_t binding, uint32_t bufferSize)
 {
     auto buffer = new VK_UniformBufferImpl(context, binding, bufferSize);
+    buffer->initBuffer(context->getSwapImageCount());
+    uniformBuffers.push_back(buffer);
+    return buffer;
+}
+
+VK_UniformBuffer *VK_ShaderSetImpl::addTexelBuffer(uint32_t binding, uint32_t bufferSize)
+{
+    auto buffer = new VK_TexelBuffer(context, binding, bufferSize);
     buffer->initBuffer(context->getSwapImageCount());
     uniformBuffers.push_back(buffer);
     return buffer;

@@ -2,9 +2,12 @@
 #include <cstring>
 #include "VK_ValidationLayer.h"
 
-VkResult createDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger)
+VkResult createDebugUtilsMessengerEXT(VkInstance instance,
+                                      const VkDebugUtilsMessengerCreateInfoEXT *pCreateInfo, const VkAllocationCallbacks *pAllocator,
+                                      VkDebugUtilsMessengerEXT *pDebugMessenger)
 {
-    auto func = (PFN_vkCreateDebugUtilsMessengerEXT) vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
+    auto func = (PFN_vkCreateDebugUtilsMessengerEXT) vkGetInstanceProcAddr(instance,
+                                                                           "vkCreateDebugUtilsMessengerEXT");
     if (func != nullptr) {
         return func(instance, pCreateInfo, pAllocator, pDebugMessenger);
     } else {
@@ -12,20 +15,25 @@ VkResult createDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMes
     }
 }
 
-void destroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks* pAllocator)
+void destroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger,
+                                   const VkAllocationCallbacks *pAllocator)
 {
-    auto func = (PFN_vkDestroyDebugUtilsMessengerEXT) vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
+    auto func = (PFN_vkDestroyDebugUtilsMessengerEXT) vkGetInstanceProcAddr(instance,
+                                                                            "vkDestroyDebugUtilsMessengerEXT");
     if (func != nullptr) {
         func(instance, debugMessenger, pAllocator);
     }
 }
 
-VkBool32 VK_ValidationLayer::debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData, void *pUserData)
+VkBool32 VK_ValidationLayer::debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+                                           VkDebugUtilsMessageTypeFlagsEXT messageType,
+                                           const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData, void *pUserData)
 {
     (void)pUserData;
-    if(messageSeverity == VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
-        std::cerr << "message type:" << messageType << " validation layer: " << pCallbackData->pMessage << std::endl;
-    return VK_FALSE;
+    //if (messageSeverity == VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
+    std::cerr << "message type:" << messageType << " validation layer: " << pCallbackData->pMessage <<
+              std::endl;
+    return VK_TRUE;
 }
 
 VK_ValidationLayer::VK_ValidationLayer(VK_Context *vkContext, bool debug):
@@ -50,7 +58,7 @@ void VK_ValidationLayer::adjustVkInstanceCreateInfo(VkInstanceCreateInfo &create
         createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
         createInfo.ppEnabledLayerNames = validationLayers.data();
         populateDebugMessengerCreateInfo(vkDebugCreateInfo);
-        createInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT*) &vkDebugCreateInfo;
+        createInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT *) &vkDebugCreateInfo;
     } else {
         createInfo.enabledLayerCount = 0;
         createInfo.ppEnabledLayerNames = nullptr;
@@ -60,7 +68,7 @@ void VK_ValidationLayer::adjustVkInstanceCreateInfo(VkInstanceCreateInfo &create
 
 void VK_ValidationLayer::adjustVkDeviceCreateInfo(VkDeviceCreateInfo &createInfo)
 {
-    if(vkDebug) {
+    if (vkDebug) {
         createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
         createInfo.ppEnabledLayerNames = validationLayers.data();
     } else {
@@ -70,7 +78,7 @@ void VK_ValidationLayer::adjustVkDeviceCreateInfo(VkDeviceCreateInfo &createInfo
 
 bool VK_ValidationLayer::appendValidationLayerSupport()
 {
-    if(!vkDebug)
+    if (!vkDebug)
         return true;
 
     uint32_t layerCount;
@@ -79,9 +87,9 @@ bool VK_ValidationLayer::appendValidationLayerSupport()
     std::vector<VkLayerProperties> availableLayers(layerCount);
     vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
 
-    for (const auto& layerProperties : availableLayers) {
-        if(isValidationLayer(layerProperties.layerName)) {
-            char* ptr = new char[100];
+    for (const auto &layerProperties : availableLayers) {
+        if (isValidationLayer(layerProperties.layerName)) {
+            char *ptr = new char[100];
             memset(ptr, 0, 100);
             memcpy(ptr, layerProperties.layerName, strlen(layerProperties.layerName));
             validationLayers.push_back(ptr);
@@ -94,27 +102,30 @@ bool VK_ValidationLayer::appendValidationLayerSupport()
 
 void VK_ValidationLayer::cleanup(VkInstance instance)
 {
-    if(vkDebug) {
+    if (vkDebug) {
         destroyDebugUtilsMessengerEXT(instance, debugMessenger, context->getAllocation());
-        for(auto str : validationLayers)
+        for (auto str : validationLayers)
             delete []str;
     }
 }
 
-void VK_ValidationLayer::populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT &createInfo)
+void VK_ValidationLayer::populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT
+                                                          &createInfo)
 {
     createInfo = {};
     createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
-    createInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
-    createInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+    createInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
+                                 VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+    createInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
+                             VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
     createInfo.pfnUserCallback = debugCallback;
 }
 
 bool VK_ValidationLayer::isValidationLayer(const char *name)
 {
     auto itr = validationlayerSets.begin();
-    while(itr != validationlayerSets.end()) {
-        if(strcmp(*itr, name) == 0)
+    while (itr != validationlayerSets.end()) {
+        if (strcmp(*itr, name) == 0)
             return true;
         itr ++;
     }
@@ -129,7 +140,8 @@ bool VK_ValidationLayer::setupDebugMessenger(VkInstance instance)
     VkDebugUtilsMessengerCreateInfoEXT createInfo;
     populateDebugMessengerCreateInfo(createInfo);
 
-    if (createDebugUtilsMessengerEXT(instance, &createInfo, context->getAllocation(), &debugMessenger) != VK_SUCCESS) {
+    if (createDebugUtilsMessengerEXT(instance, &createInfo, context->getAllocation(),
+                                     &debugMessenger) != VK_SUCCESS) {
         std::cout << "failed to set up debug messenger!" << std::endl;
         return false;
     }

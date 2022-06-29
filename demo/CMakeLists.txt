@@ -15,6 +15,8 @@ set(DEMOS
     texture-blit-image
     texture-save-image
     texture-push-descriptor
+    texel-buffer
+    query
     model
     model-model
     model-mesh

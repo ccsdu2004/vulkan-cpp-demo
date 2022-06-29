@@ -94,6 +94,14 @@ add_library(
      source/VK_SecondaryCommandBuffer.cpp
      include/VK_SecondaryCommandBufferCallback.h
      source/VK_SecondaryCommandBufferCallback.cpp
+     include/VK_BufferView.h
+     source/VK_BufferView.cpp
+     source/VK_BufferViewImpl.h
+     source/VK_BufferViewImpl.cpp
+     source/VK_TexelBuffer.h
+     source/VK_TexelBuffer.cpp
+     source/VK_QueryPool.cpp
+     source/VK_QueryPoolImpl.h
      thirdparty/tiny_obj_loader.cc
      thirdparty/stb_image.cpp
      thirdparty/tiff.cpp

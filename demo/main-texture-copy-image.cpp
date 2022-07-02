@@ -58,19 +58,19 @@ int main()
 
     shaderSet->appendVertexAttributeDescription(0, sizeof (float) * 3, VK_FORMAT_R32G32B32_SFLOAT, 0);
     shaderSet->appendVertexAttributeDescription(1, sizeof (float) * 4, VK_FORMAT_R32G32B32A32_SFLOAT,
-            sizeof(float) * 3);
+                                                sizeof(float) * 3);
     shaderSet->appendVertexAttributeDescription(2, sizeof (float) * 2, VK_FORMAT_R32G32_SFLOAT,
-            sizeof(float) * 7);
+                                                sizeof(float) * 7);
 
     shaderSet->appendVertexInputBindingDescription(9 * sizeof(float), 0, VK_VERTEX_INPUT_RATE_VERTEX);
 
     VkDescriptorSetLayoutBinding uniformBinding = VK_ShaderSet::createDescriptorSetLayoutBinding(0,
-            VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT);
+                                                                                                 VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT);
     shaderSet->addDescriptorSetLayoutBinding(uniformBinding);
 
     auto samplerBinding = VK_ShaderSet::createDescriptorSetLayoutBinding(1,
-                          VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                          VK_SHADER_STAGE_FRAGMENT_BIT);
+                                                                         VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                                                                         VK_SHADER_STAGE_FRAGMENT_BIT);
     auto samplerCreateInfo  = VK_Sampler::createSamplerCreateInfo();
     auto samplerPtr = context->createSampler(samplerCreateInfo);
     VkSampler sampler = samplerPtr->getSampler();
@@ -88,7 +88,7 @@ int main()
     auto ubo = shaderSet->addUniformBuffer(0, sizeof(float) * 16);
     ubo->setWriteDataCallback(updateUniformBufferData);
 
-    auto cat = context->createImage("../images/cat.png");
+    auto cat = context->createImage("../images/kitten.png");
     auto wall = context->createImage("../images/wall.png");
 
     auto command = context->getCommandPool()->beginSingleTimeCommands();
@@ -127,7 +127,7 @@ int main()
     context->getCommandPool()->endSingleTimeCommands(command, context->getGraphicQueue());
 
     auto imageViewCreateInfo = VK_ImageView::createImageViewCreateInfo(wall->getImage(),
-                               VK_FORMAT_R8G8B8A8_SRGB);
+                                                                       VK_FORMAT_R8G8B8A8_SRGB);
     auto imageView = context->createImageView(imageViewCreateInfo);
     shaderSet->addImageView(imageView, 1);
 

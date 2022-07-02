@@ -4,5 +4,5 @@
 class VK_BufferView
 {
 public:
-    [[nodiscard]] virtual VkBufferView getBufferView() = 0;
+    [[nodiscard]] virtual VkBufferView *getBufferView() = 0;
 };

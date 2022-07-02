@@ -20,9 +20,9 @@ const std::vector<uint32_t> indices = {
     0, 1, 2
 };
 
-const float texels[] = {1.0f, 0.0f, 0.0f, 1.0f,
-                        0.0f, 1.0f, 0.0f, 1.0f,
-                        0.0f, 0.0f, 1.0f, 1.0f
+const float texels[] = {1.0f, 0.0f, 0.0f,
+                        0.0f, 1.0f, 0.0f,
+                        0.0f, 0.0f, 1.0f
                        };
 
 VK_Context *context = nullptr;
@@ -52,7 +52,7 @@ void onMouseButtonCallback(int button, int action, int mods)
 int main()
 {
     VK_ContextConfig config;
-    config.debug = true;
+    config.debug = false;
     config.name = "Texel-Buffer";
     config.mouseCallback = onMouseButtonCallback;
 
@@ -84,12 +84,12 @@ int main()
 
     shaderSet->appendVertexAttributeDescription(0, sizeof (float) * 3, VK_FORMAT_R32G32B32_SFLOAT, 0);
     shaderSet->appendVertexAttributeDescription(1, sizeof (float) * 4, VK_FORMAT_R32G32B32A32_SFLOAT,
-                                                sizeof(float) * 3);
+            sizeof(float) * 3);
 
     shaderSet->appendVertexInputBindingDescription(7 * sizeof(float), 0, VK_VERTEX_INPUT_RATE_VERTEX);
 
     VkDescriptorSetLayoutBinding uniformBinding = VK_ShaderSet::createDescriptorSetLayoutBinding(0,
-                                                                                                 VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, VK_SHADER_STAGE_VERTEX_BIT);
+            VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, VK_SHADER_STAGE_VERTEX_BIT);
     shaderSet->addDescriptorSetLayoutBinding(uniformBinding);
 
     if (!shaderSet->isValid()) {

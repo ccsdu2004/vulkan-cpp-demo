@@ -38,6 +38,7 @@ void VK_TexelBuffer::initBuffer(uint32_t swapImageChainSize)
 
         bufferViews[i] = std::make_shared<VK_BufferViewImpl>(context, uniformBuffers[i],
                                                              VK_FORMAT_R32_SFLOAT, bufferSize);
+
     }
 
     needClear = true;
@@ -57,8 +58,7 @@ VkWriteDescriptorSet VK_TexelBuffer::createWriteDescriptorSet(uint32_t index,
     descriptorWrite.descriptorCount = 1;
     descriptorWrite.pBufferInfo = &bufferInfos[index];
 
-    VkBufferView bufferView = bufferViews[index]->getBufferView();
-    descriptorWrite.pTexelBufferView = &bufferView;
+    descriptorWrite.pTexelBufferView = bufferViews[index]->getBufferView();
     return descriptorWrite;
 }
 

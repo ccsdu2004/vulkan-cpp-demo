@@ -8,9 +8,9 @@ layout (binding = 0) uniform samplerBuffer texels;
 layout (location = 0) out vec4 outColor;
  
 void main() {
-    float r = texelFetch(texels, 0).r;
-    float g = texelFetch(texels, 1).g;
-    float b = 0.25;
+    float r = texelFetch(texels, gl_VertexIndex*3).r;
+    float g = texelFetch(texels, gl_VertexIndex*3+1).r;
+    float b = texelFetch(texels, gl_VertexIndex*3+2).r;
     outColor = vec4(r, g, b, 1.0);
     gl_Position = vec4(position, 1.0);
 }

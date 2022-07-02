@@ -22,7 +22,7 @@ VK_BufferViewImpl::~VK_BufferViewImpl()
     vkDestroyBufferView(vkContext->getDevice(), bufferView, vkContext->getAllocation());
 }
 
-VkBufferView VK_BufferViewImpl::getBufferView()
+VkBufferView *VK_BufferViewImpl::getBufferView()
 {
-    return bufferView;
+    return &bufferView;
 }

@@ -11,7 +11,7 @@ public:
 
     ~VK_BufferViewImpl();
 public:
-    VkBufferView getBufferView() override;
+    VkBufferView *getBufferView() override;
 private:
     VK_Context *vkContext = nullptr;
     VkBufferView bufferView = nullptr;

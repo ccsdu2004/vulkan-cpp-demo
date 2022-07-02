@@ -240,15 +240,12 @@ void VK_ContextImpl::cleanupSwapChain()
 
     for (auto comandBuffer : secondaryCommandBuffers)
         comandBuffer->release();
+    secondaryCommandBuffers.clear();
     commandBuffers.clear();
 
     for (auto framebuffer : swapChainFramebuffers) {
         vkDestroyFramebuffer(device, framebuffer, getAllocation());
     }
-
-    vkFreeCommandBuffers(device, commandPool->getCommandPool(),
-                         static_cast<uint32_t>(commandBuffers.size()),
-                         commandBuffers.data());
 
     for (auto pipeline : pipelines)
         pipeline->release();
@@ -489,7 +486,7 @@ bool VK_ContextImpl::createSwapChain()
 
     uint32_t imageCount = swapChainSupport.capabilities.minImageCount + 1;
     if (swapChainSupport.capabilities.maxImageCount > 0
-            && imageCount > swapChainSupport.capabilities.maxImageCount) {
+        && imageCount > swapChainSupport.capabilities.maxImageCount) {
         imageCount = swapChainSupport.capabilities.maxImageCount;
     }
 
@@ -541,7 +538,7 @@ bool VK_ContextImpl::createSwapChainImageViews()
 
     for (size_t i = 0; i < swapChainImages.size(); i++) {
         VkImageViewCreateInfo viewCreateInfo = VK_ImageView::createImageViewCreateInfo(swapChainImages[i],
-                                                                                       swapChainImageFormat);
+                                               swapChainImageFormat);
         viewCreateInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 
         VK_ImageViewImpl *view = new VK_ImageViewImpl(this);
@@ -576,7 +573,7 @@ VK_ShaderSet *VK_ContextImpl::createShaderSet()
 }
 
 VK_Buffer *VK_ContextImpl::createVertexBuffer(const std::vector<float> &vertices, uint32_t count,
-                                              const std::vector<uint32_t> &indices, bool indirectDraw)
+        const std::vector<uint32_t> &indices, bool indirectDraw)
 {
     auto vertexBuffer = new VK_VertexBuffer(this);
     vertexBuffer->create(vertices, count, indices, indirectDraw);
@@ -585,7 +582,7 @@ VK_Buffer *VK_ContextImpl::createVertexBuffer(const std::vector<float> &vertices
 }
 
 VK_Buffer *VK_ContextImpl::createVertexBuffer(const std::vector<VK_Vertex> &vertices,
-                                              const std::vector<uint32_t> &indices, bool indirectDraw)
+        const std::vector<uint32_t> &indices, bool indirectDraw)
 {
     auto vertexBuffer = new VK_VertexBuffer(this);
     vertexBuffer->create(vertices, indices, indirectDraw);
@@ -594,7 +591,7 @@ VK_Buffer *VK_ContextImpl::createVertexBuffer(const std::vector<VK_Vertex> &vert
 }
 
 VK_Buffer *VK_ContextImpl::createVertexBuffer(const std::string &filename, bool zero,
-                                              bool indirectDraw)
+        bool indirectDraw)
 {
     VK_OBJLoader *loader = new VK_OBJLoader(this);
     if (!loader->load(filename, zero)) {
@@ -611,7 +608,7 @@ VK_Buffer *VK_ContextImpl::createVertexBuffer(const std::string &filename, bool 
 }
 
 VK_Buffer *VK_ContextImpl::createIndirectBuffer(uint32_t instanceCount, uint32_t oneInstanceSize,
-                                                uint32_t vertexCount)
+        uint32_t vertexCount)
 {
     VK_IndirectBuffer *buffer = new VK_IndirectBuffer(this);
     buffer->create(instanceCount, oneInstanceSize, vertexCount);
@@ -620,7 +617,7 @@ VK_Buffer *VK_ContextImpl::createIndirectBuffer(uint32_t instanceCount, uint32_t
 }
 
 VK_Buffer *VK_ContextImpl::createInstanceBuffer(uint32_t count, uint32_t itemSize, const char *data,
-                                                uint32_t bind)
+        uint32_t bind)
 {
     VK_InstanceBuffer *buffer = new VK_InstanceBuffer(this);
     buffer->create(count, itemSize, data, bind);
@@ -674,7 +671,7 @@ void VK_ContextImpl::removeSampler(VK_Sampler *sampler)
 }
 
 VK_ImageView *VK_ContextImpl::createImageView(const VkImageViewCreateInfo &viewCreateInfo,
-                                              uint32_t mipLevels)
+        uint32_t mipLevels)
 {
     auto imageView = new VK_ImageViewImpl(this);
     if (!imageView->create(viewCreateInfo)) {
@@ -715,7 +712,7 @@ bool VK_ContextImpl::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage,
     allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
     allocInfo.allocationSize = memRequirements.size;
     allocInfo.memoryTypeIndex = findMemoryType(physicalDevice, memRequirements.memoryTypeBits,
-                                               properties);
+                                properties);
     allocInfo.pNext = nullptr;
 
     if (vkAllocateMemory(device, &allocInfo, getAllocation(), &bufferMemory) != VK_SUCCESS) {
@@ -739,7 +736,7 @@ void VK_ContextImpl::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDevice
 }
 
 VK_QueryPool *VK_ContextImpl::createQueryPool(uint32_t count, VkQueryPipelineStatisticFlags flag,
-                                              std::function<void (const std::vector<uint64_t> &)> callback)
+        std::function<void (const std::vector<uint64_t> &)> callback)
 {
     if (queryPool)
         return queryPool;
@@ -898,7 +895,7 @@ bool VK_ContextImpl::createCommandBuffers()
 }
 
 bool VK_ContextImpl::createSecondaryCommandBuffer(uint32_t secondaryCommandBufferCount,
-                                                  std::shared_ptr<VK_SecondaryCommandBufferCallback> caller)
+        std::shared_ptr<VK_SecondaryCommandBufferCallback> caller)
 {
     if (secondaryCommandBufferCount == 0)
         return false;
@@ -909,7 +906,7 @@ bool VK_ContextImpl::createSecondaryCommandBuffer(uint32_t secondaryCommandBuffe
     secondaryCommandBuffers.resize(swapChainFramebuffers.size());
     for (uint32_t i = 0; i < swapChainFramebuffers.size(); i++) {
         secondaryCommandBuffers[i] = new VK_SecondaryCommandBuffer(this,
-                                                                   getCommandPool()->getCommandPool());
+                getCommandPool()->getCommandPool());
         secondaryCommandBuffers[i]->create(secondaryCommandBufferCount);
 
         VkCommandBufferInheritanceInfo info = {};
@@ -961,10 +958,10 @@ void VK_ContextImpl::createSyncObjects()
     for (int i = 0; i < vkConfig.maxFramsInFlight; i++) {
         if (vkCreateSemaphore(device, &semaphoreInfo, getAllocation(),
                               &imageAvailableSemaphores[i]) != VK_SUCCESS
-                ||
-                vkCreateSemaphore(device, &semaphoreInfo, getAllocation(),
-                                  &renderFinishedSemaphores[i]) != VK_SUCCESS ||
-                vkCreateFence(device, &fenceInfo, getAllocation(), &inFlightFences[i]) != VK_SUCCESS) {
+            ||
+            vkCreateSemaphore(device, &semaphoreInfo, getAllocation(),
+                              &renderFinishedSemaphores[i]) != VK_SUCCESS ||
+            vkCreateFence(device, &fenceInfo, getAllocation(), &inFlightFences[i]) != VK_SUCCESS) {
             std::cerr << "failed to create synchronization objects for a frame!" << std::endl;
         }
     }
@@ -1048,8 +1045,8 @@ bool VK_ContextImpl::drawFrame()
     result = vkQueuePresentKHR(presentQueue, &presentInfo);
 
     if (result == VK_ERROR_OUT_OF_DATE_KHR ||
-            result == VK_SUBOPTIMAL_KHR ||
-            framebufferResized) {
+        result == VK_SUBOPTIMAL_KHR ||
+        framebufferResized) {
         framebufferResized = false;
         recreateSwapChain();
     } else if (result != VK_SUCCESS) {
@@ -1062,11 +1059,11 @@ bool VK_ContextImpl::drawFrame()
 }
 
 VkSurfaceFormatKHR VK_ContextImpl::chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>
-                                                           &availableFormats)
+        &availableFormats)
 {
     for (const auto &availableFormat : availableFormats) {
         if (availableFormat.format == VK_FORMAT_B8G8R8A8_SRGB
-                && availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
+            && availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
             return availableFormat;
         }
     }
@@ -1075,7 +1072,7 @@ VkSurfaceFormatKHR VK_ContextImpl::chooseSwapSurfaceFormat(const std::vector<VkS
 }
 
 VkPresentModeKHR VK_ContextImpl::chooseSwapPresentMode(const std::vector<VkPresentModeKHR>
-                                                       &availablePresentModes)
+        &availablePresentModes)
 {
     for (const auto &availablePresentMode : availablePresentModes) {
         if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR) {
@@ -1128,7 +1125,7 @@ SwapChainSupportDetails VK_ContextImpl::querySwapChainSupport(VkPhysicalDevice d
     if (presentModeCount != 0) {
         details.presentModes.resize(presentModeCount);
         vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentModeCount,
-                                                  details.presentModes.data());
+                details.presentModes.data());
     }
 
     return details;

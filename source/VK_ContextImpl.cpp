@@ -870,10 +870,12 @@ bool VK_ContextImpl::createCommandBuffers()
             renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
             renderPassInfo.pClearValues = clearValues.data();
 
+            if (queryPool)
+                queryPool->reset(commandBuffers[i]);
+
             vkCmdBeginRenderPass(commandBuffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
             if (queryPool) {
-                queryPool->reset(commandBuffers[i]);
                 queryPool->startQeury(commandBuffers[i]);
             }
 
@@ -1083,7 +1085,7 @@ VkPresentModeKHR VK_ContextImpl::chooseSwapPresentMode(const std::vector<VkPrese
     return VK_PRESENT_MODE_FIFO_KHR;
 }
 
-VkExtent2D VK_ContextImpl::chooseSwapExtent(const VkSurfaceCapabilitiesKHR &capabilities)
+VkExtent2D VK_ContextImpl::chooseSwapExtent(const VkSurfaceCapabilitiesKHR & capabilities)
 {
     if (capabilities.currentExtent.width != UINT32_MAX) {
         return capabilities.currentExtent;

@@ -8,18 +8,14 @@
 #include "VK_Texture.h"
 #include "VK_Pipeline.h"
 #include "VK_DynamicState.h"
-#include "VK_CommandPool.h"
-//#include "VK_Util.h"
-#include "tiffutil.h"
-#include <fstream>
 
 using namespace std;
 
 const std::vector<float> vertices = {
-    -0.5f, -0.5, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.05f, 0.0f,
+    -0.5f, -0.5, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f,
         0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f,
-        0.5f, 0.5f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 1.5f,
-        -0.5f, 0.5f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, 1.5f, 1.5f
+        0.5f, 0.5f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f,
+        -0.5f, 0.5f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, 1.0f, 1.0f
     };
 
 const std::vector<uint32_t> indices = {
@@ -44,8 +40,8 @@ void onFrameSizeChanged(int width, int height)
 int main()
 {
     VK_ContextConfig config;
-    config.debug = true;
-    config.name = "Save Image";
+    config.debug = false;
+    config.name = "Input Attachment";
 
     context = createVkContext(config);
     context->createWindow(480, 480, true);
@@ -55,8 +51,8 @@ int main()
     context->initVulkanDevice(vkConfig);
 
     auto shaderSet = context->createShaderSet();
-    shaderSet->addShader("../shader/texture/vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-    shaderSet->addShader("../shader/texture/frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+    shaderSet->addShader("../shader/input-attachment/vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+    shaderSet->addShader("../shader/input-attachment/frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 
     shaderSet->appendVertexAttributeDescription(0, sizeof (float) * 3, VK_FORMAT_R32G32B32_SFLOAT, 0);
     shaderSet->appendVertexAttributeDescription(1, sizeof (float) * 4, VK_FORMAT_R32G32B32A32_SFLOAT,
@@ -70,15 +66,15 @@ int main()
                                                                                                  VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT);
     shaderSet->addDescriptorSetLayoutBinding(uniformBinding);
 
-    auto samplerBinding = VK_ShaderSet::createDescriptorSetLayoutBinding(1,
-                                                                         VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                                                                         VK_SHADER_STAGE_FRAGMENT_BIT);
+    auto inputAttachment = VK_ShaderSet::createDescriptorSetLayoutBinding(1,
+                                                                          VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT,
+                                                                          VK_SHADER_STAGE_FRAGMENT_BIT);
     auto samplerCreateInfo  = VK_Sampler::createSamplerCreateInfo();
     auto samplerPtr = context->createSampler(samplerCreateInfo);
     VkSampler sampler = samplerPtr->getSampler();
-    samplerBinding.pImmutableSamplers = &sampler;
+    inputAttachment.pImmutableSamplers = &sampler;
 
-    shaderSet->addDescriptorSetLayoutBinding(samplerBinding);
+    shaderSet->addDescriptorSetLayoutBinding(inputAttachment);
 
     if (!shaderSet->isValid()) {
         std::cerr << "invalid shaderSet" << std::endl;
@@ -90,20 +86,7 @@ int main()
     auto ubo = shaderSet->addUniformBuffer(0, sizeof(float) * 16);
     ubo->setWriteDataCallback(updateUniformBufferData);
 
-    auto image = context->createImage("../images/cat.png");
-
-    auto cmd = context->getCommandPool()->beginSingleTimeCommands();
-    adjustImageLayout(cmd, image->getImage(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                      VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
-    context->getCommandPool()->endSingleTimeCommands(cmd, context->getGraphicQueue());
-    writeFile(context, "cat.ppm", image->getImage(), image->getWidth(),
-              image->getHeight());
-
-    cmd = context->getCommandPool()->beginSingleTimeCommands();
-    adjustImageLayout(cmd, image->getImage(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                      VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-    context->getCommandPool()->endSingleTimeCommands(cmd, context->getGraphicQueue());
-
+    auto image = context->createImage("../images/smile.png");
     auto imageViewCreateInfo = VK_ImageView::createImageViewCreateInfo(image->getImage(),
                                                                        VK_FORMAT_R8G8B8A8_SRGB);
     auto imageView = context->createImageView(imageViewCreateInfo);
@@ -111,9 +94,7 @@ int main()
 
     context->initVulkanContext();
     pipeline = context->createPipeline(shaderSet);
-    pipeline->getDynamicState()->addDynamicState(VK_DYNAMIC_STATE_VIEWPORT);
     pipeline->create();
-    pipeline->getDynamicState()->applyDynamicViewport({0, 0, 480, 480, 0, 1});
 
     auto buffer = context->createVertexBuffer(vertices, 9, indices);
     pipeline->addRenderBuffer(buffer);
@@ -125,4 +106,3 @@ int main()
 
     return 0;
 }
-

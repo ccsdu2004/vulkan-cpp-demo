@@ -17,6 +17,21 @@ VK_UniformBufferImpl::~VK_UniformBufferImpl()
 {
 }
 
+bool VK_UniformBufferImpl::isDynamicBuffer() const
+{
+    return false;
+}
+
+uint32_t VK_UniformBufferImpl::getBufferSize() const
+{
+    return bufferSize;
+}
+
+uint32_t VK_UniformBufferImpl::getBufferCount() const
+{
+    return 1;
+}
+
 void VK_UniformBufferImpl::initBuffer(uint32_t swapImageChainSize)
 {
     clearBuffer();
@@ -74,6 +89,7 @@ void VK_UniformBufferImpl::update(uint32_t index)
 {
     if (!writeDataCallback) {
         std::cerr << "please set write data callback function" << std::endl;
+        return;
     }
 
     char *userData = bufferData.data();

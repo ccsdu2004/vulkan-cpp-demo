@@ -12,6 +12,9 @@ public:
     VK_UniformBufferImpl(VK_ContextImpl *vkContext, uint32_t binding, uint32_t bufferSize);
     ~VK_UniformBufferImpl();
 public:
+    bool isDynamicBuffer()const override;
+    uint32_t getBufferSize()const override;
+    uint32_t getBufferCount()const override;
     void initBuffer(uint32_t swapImageChainSize)override;
 
     VkWriteDescriptorSet createWriteDescriptorSet(uint32_t index,

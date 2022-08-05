@@ -6,8 +6,12 @@ set(DEMOS
     cube-texture
     cube-color
     clear-color
+    input-attachment
     uniform-buffer
     uniform-buffer2
+    dynamic-uniform
+    storage-buffer
+    storage-texel-buffer
     sampler
     texture
     texture-clear-image
@@ -37,12 +41,12 @@ foreach(var IN LISTS DEMOS)
     if(WIN32)
         target_link_libraries(${var} vulkan-framwork glfw3 vulkan-1 tiff)
     else()
-        target_link_libraries(${var} vulkan-framwork glfw vulkan tiff)
+        target_link_libraries(${var} vulkan-framwork glfw3 vulkan tiff)
     endif()
 endforeach()
 
 if(WIN32)
 else()
     add_executable(opengl main-opengl.cpp ../glad/glad.c)
-    target_link_libraries(opengl glfw GL dl)
+    target_link_libraries(opengl glfw3 GL dl)
 endif()

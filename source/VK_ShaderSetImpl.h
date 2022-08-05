@@ -42,7 +42,11 @@ public:
                    const char *entryPoint = "main")override;
 public:
     VK_UniformBuffer *addUniformBuffer(uint32_t binding, uint32_t bufferSize)override;
+    VK_UniformBuffer *addDynamicUniformBuffer(uint32_t binding,
+                                              uint32_t bufferSize, uint32_t count) override;
     VK_UniformBuffer *addTexelBuffer(uint32_t binding, uint32_t bufferSize) override;
+    VK_UniformBuffer *addStorageBuffer(uint32_t binding, uint32_t bufferSize) override;
+    VK_UniformBuffer *addStorageTexelBuffer(uint32_t biding, uint32_t bufferSize) override;
 
     void initUniformBuffer() override;
     void clearUniformBuffer()override;

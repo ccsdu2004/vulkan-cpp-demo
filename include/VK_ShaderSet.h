@@ -10,6 +10,7 @@
 class VK_DescriptorSets;
 class VK_ImageView;
 class VK_UniformBuffer;
+class VK_DynamicUniformBuffer;
 
 class VK_ShaderSet : public VK_Deleter
 {
@@ -43,7 +44,12 @@ public:
                            const char *entryPoint = "main") = 0;
 public:
     [[nodiscard]] virtual VK_UniformBuffer *addUniformBuffer(uint32_t binding, uint32_t bufferSize) = 0;
+    [[nodiscard]] virtual VK_UniformBuffer *addDynamicUniformBuffer(uint32_t binding,
+                                                                    uint32_t bufferSize, uint32_t count) = 0;
     [[nodiscard]] virtual VK_UniformBuffer *addTexelBuffer(uint32_t binding, uint32_t bufferSize) = 0;
+    [[nodiscard]] virtual VK_UniformBuffer *addStorageBuffer(uint32_t binding, uint32_t bufferSize) = 0;
+    [[nodiscard]] virtual VK_UniformBuffer *addStorageTexelBuffer(uint32_t biding,
+                                                                  uint32_t bufferSize) = 0;
     virtual void initUniformBuffer() = 0;
     virtual void clearUniformBuffer() = 0;
 

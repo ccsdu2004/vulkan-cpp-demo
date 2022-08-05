@@ -9,6 +9,9 @@
 class VK_UniformBuffer : public VK_Deleter
 {
 public:
+    virtual bool isDynamicBuffer()const = 0;
+    virtual uint32_t getBufferSize()const = 0;
+    virtual uint32_t getBufferCount()const = 0;
     virtual void initBuffer(uint32_t swapImageChainSize) = 0;
     [[nodiscard]] virtual VkWriteDescriptorSet createWriteDescriptorSet(uint32_t index,
                                                                         VkDescriptorSet descriptorSet)const = 0;

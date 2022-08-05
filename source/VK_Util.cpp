@@ -5,7 +5,7 @@
 #include "VK_Image.h"
 #include "VK_CommandPool.h"
 #include "VK_Context.h"
-#include "tiff.h"
+#include "tiffutil.h"
 
 std::vector<char> readDataFromFile(const std::string &filename)
 {
@@ -89,7 +89,7 @@ uint32_t findMemoryType(VkPhysicalDevice physicalDevice, uint32_t typeFilter,
 
     for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) {
         if ((typeFilter & (1 << i))
-            && (memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
+                && (memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
             return i;
         }
     }
@@ -213,7 +213,8 @@ void writeFile(VK_Context *context, const std::string &file, VkImage image, uint
     VkPhysicalDeviceMemoryProperties memoryProperties;
     vkGetPhysicalDeviceMemoryProperties(context->getPhysicalDevice(), &memoryProperties);
 
-    context->createBuffer(width * height * 4, VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,//0,
+    context->createBuffer(width * height * 4, VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+                          VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,//0,
                           imageBuffer, imageBufferMemory);
 
     VkCommandBuffer commandBuffer;
@@ -264,7 +265,8 @@ void writeFile(VK_Context *context, const std::string &file, VkImage image, uint
             .offset = 0,
             .size = VK_WHOLE_SIZE,
         };
-        vkCmdPipelineBarrier(commandBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_HOST_BIT, 0, 0,
+        vkCmdPipelineBarrier(commandBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_HOST_BIT, 0,
+                             0,
                              NULL, 1, &transferBarrier, 0, NULL);
         assert(vkEndCommandBuffer(commandBuffer) == VK_SUCCESS);
     }

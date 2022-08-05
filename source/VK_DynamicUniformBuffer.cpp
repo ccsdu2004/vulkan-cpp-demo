@@ -1,38 +1,44 @@
 #include <cstring>
 #include <chrono>
-#include <glm/mat4x4.hpp>
 #include <glm/gtx/transform.hpp>
-#include <VK_TexelBuffer.h>
+#include <VK_DynamicUniformBuffer.h>
+#include <iostream>
 
-VK_TexelBuffer::VK_TexelBuffer(VK_ContextImpl *vkContext, uint32_t binding,
-                               uint32_t uboSize):
+VK_DynamicUniformBuffer::VK_DynamicUniformBuffer(VK_ContextImpl *vkContext, uint32_t binding,
+                                                 uint32_t uboSize, uint32_t count):
     context(vkContext),
     bindingId(binding),
-    bufferSize(uboSize)
+    uniformCount(count)
 {
-    bufferData.resize(bufferSize);
+    auto property = context->getPhysicalDeviceProperties();
+    if (property.limits.minUniformBufferOffsetAlignment)
+        uboSize = (uboSize + property.limits.minUniformBufferOffsetAlignment - 1) &
+                  ~(property.limits.minUniformBufferOffsetAlignment - 1);
+
+    bufferSize = uboSize;
+    bufferData.resize(uboSize * uniformCount);
 }
 
-VK_TexelBuffer::~VK_TexelBuffer()
+VK_DynamicUniformBuffer::~VK_DynamicUniformBuffer()
 {
 }
 
-bool VK_TexelBuffer::isDynamicBuffer() const
+bool VK_DynamicUniformBuffer::isDynamicBuffer() const
 {
-    return false;
+    return true;
 }
 
-uint32_t VK_TexelBuffer::getBufferSize() const
+uint32_t VK_DynamicUniformBuffer::getBufferSize() const
 {
     return bufferSize;
 }
 
-uint32_t VK_TexelBuffer::getBufferCount() const
+uint32_t VK_DynamicUniformBuffer::getBufferCount() const
 {
-    return 1;
+    return uniformCount;
 }
 
-void VK_TexelBuffer::initBuffer(uint32_t swapImageChainSize)
+void VK_DynamicUniformBuffer::initBuffer(uint32_t swapImageChainSize)
 {
     clearBuffer();
 
@@ -40,27 +46,21 @@ void VK_TexelBuffer::initBuffer(uint32_t swapImageChainSize)
     uniformBuffersMemory.resize(swapImageChainSize);
     bufferInfos.resize(swapImageChainSize);
 
-    bufferViews.resize(swapImageChainSize);
-
     for (size_t i = 0; i < swapImageChainSize; i++) {
-        context->createBuffer(bufferSize,
-                              VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT,
+        context->createBuffer(uniformCount * bufferSize,
+                              VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
                               VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformBuffers[i],
                               uniformBuffersMemory[i]);
         bufferInfos[i].buffer = uniformBuffers[i];
         bufferInfos[i].offset = 0;
         bufferInfos[i].range = bufferSize;
-
-        bufferViews[i] = std::make_shared<VK_BufferViewImpl>(context, uniformBuffers[i],
-                                                             VK_FORMAT_R32_SFLOAT, bufferSize);
-
     }
 
     needClear = true;
 }
 
-VkWriteDescriptorSet VK_TexelBuffer::createWriteDescriptorSet(uint32_t index,
-                                                              VkDescriptorSet descriptorSet) const
+VkWriteDescriptorSet VK_DynamicUniformBuffer::createWriteDescriptorSet(uint32_t index,
+                                                                       VkDescriptorSet descriptorSet) const
 {
     assert(index < bufferInfos.size());
     VkWriteDescriptorSet descriptorWrite{};
@@ -69,15 +69,15 @@ VkWriteDescriptorSet VK_TexelBuffer::createWriteDescriptorSet(uint32_t index,
     descriptorWrite.dstBinding = bindingId;
     descriptorWrite.dstArrayElement = 0;
     descriptorWrite.descriptorType =
-        VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER;
+        VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
     descriptorWrite.descriptorCount = 1;
     descriptorWrite.pBufferInfo = &bufferInfos[index];
 
-    descriptorWrite.pTexelBufferView = bufferViews[index]->getBufferView();
+    descriptorWrite.pTexelBufferView = nullptr;
     return descriptorWrite;
 }
 
-void VK_TexelBuffer::release()
+void VK_DynamicUniformBuffer::release()
 {
     clearBuffer();
     uniformBuffers.clear();
@@ -85,16 +85,17 @@ void VK_TexelBuffer::release()
     delete this;
 }
 
-void VK_TexelBuffer::setWriteDataCallback(std::function<uint32_t (char *&, uint32_t)> cb)
+void VK_DynamicUniformBuffer::setWriteDataCallback(std::function<uint32_t (char *&, uint32_t)> cb)
 {
     if (cb)
         writeDataCallback = cb;
 }
 
-void VK_TexelBuffer::update(uint32_t index)
+void VK_DynamicUniformBuffer::update(uint32_t index)
 {
     if (!writeDataCallback) {
         std::cerr << "please set write data callback function" << std::endl;
+        return;
     }
 
     char *userData = bufferData.data();
@@ -105,15 +106,14 @@ void VK_TexelBuffer::update(uint32_t index)
     }
 
     void *gpuData = nullptr;
-    vkMapMemory(context->getDevice(), uniformBuffersMemory[index], 0, bufferSize, 0, &gpuData);
-    memcpy(gpuData, userData, bufferSize);
+    vkMapMemory(context->getDevice(), uniformBuffersMemory[index], 0, bufferSize * uniformCount, 0,
+                &gpuData);
+    memcpy(gpuData, userData, bufferSize * uniformCount);
     vkUnmapMemory(context->getDevice(), uniformBuffersMemory[index]);
 }
 
-void VK_TexelBuffer::clearBuffer()
+void VK_DynamicUniformBuffer::clearBuffer()
 {
-    bufferViews.clear();
-
     for (size_t i = 0; i < uniformBuffers.size(); i++) {
         vkDestroyBuffer(context->getDevice(), uniformBuffers[i], context->getAllocation());
         uniformBuffers[i] = VK_NULL_HANDLE;

@@ -177,7 +177,6 @@ void VK_PipelineImpl::setNeedRecreate()
 
 void VK_PipelineImpl::render(VkCommandBuffer buffer, uint32_t index)
 {
-    descriptorSets->bind(buffer, pipelineLayout->getPipelineLayout(), index);
     pipelineLayout->pushConst(buffer);
 
     vkDynamicState->apply(buffer);
@@ -186,14 +185,12 @@ void VK_PipelineImpl::render(VkCommandBuffer buffer, uint32_t index)
     if (pushDescriptor)
         pushDescriptor->push(buffer, pipelineLayout->getPipelineLayout());
 
-    for (auto currentBuffer : buffers)
-        currentBuffer->render(buffer);
+    descriptorSets->render(buffer, pipelineLayout->getPipelineLayout(), index, buffers);
 }
 
 void VK_PipelineImpl::render(VkCommandBuffer buffer, uint32_t index,
                              std::shared_ptr<VK_SecondaryCommandBufferCallback> caller, uint32_t current, uint32_t total)
 {
-    descriptorSets->bind(buffer, pipelineLayout->getPipelineLayout(), index);
     pipelineLayout->pushConst(buffer);
 
     vkDynamicState->apply(buffer);
@@ -205,8 +202,7 @@ void VK_PipelineImpl::render(VkCommandBuffer buffer, uint32_t index,
     if (caller)
         caller->execute(context, buffer, current, total);
 
-    for (auto currentBuffer : buffers)
-        currentBuffer->render(buffer);
+    descriptorSets->render(buffer, pipelineLayout->getPipelineLayout(), index, buffers);
 }
 
 void VK_PipelineImpl::release()
@@ -380,7 +376,23 @@ bool VK_PipelineImpl::createPipeline(VkPipelineCreateFlagBits flag)
     auto multiSampleStateCreateInfo = getMultisampleStateCreateInfo();
     pipelineCreateInfo.pMultisampleState = &multiSampleStateCreateInfo;
 
+    VkPipelineColorBlendAttachmentState blend_attachment_state = {
+        .blendEnable = VK_TRUE,
+        .srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA,
+        .dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
+        .colorBlendOp = VK_BLEND_OP_ADD,
+        .srcAlphaBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA,
+        .dstAlphaBlendFactor = VK_BLEND_FACTOR_DST_ALPHA,
+        .alphaBlendOp = VK_BLEND_OP_MAX,
+        .colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT,
+    };
+
     auto colorBlendStateCreateInfo = getColorBlendStateCreateInfo();
+    colorBlendStateCreateInfo.pAttachments = &blend_attachment_state;
+    colorBlendStateCreateInfo.blendConstants[0] = 0.0f;
+    colorBlendStateCreateInfo.blendConstants[1] = 0.0f;
+    colorBlendStateCreateInfo.blendConstants[2] = 1.0f;
+    colorBlendStateCreateInfo.blendConstants[3] = 1.0f;
     pipelineCreateInfo.pColorBlendState = &colorBlendStateCreateInfo;
 
     if (!tessellationStateCreateInfo.has_value())

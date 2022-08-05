@@ -1,4 +1,4 @@
-#include "tiff.h"
+#include "tiffutil.h"
 #include "tiff/tiffio.h"
 #include <stdlib.h>
 

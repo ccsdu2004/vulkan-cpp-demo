@@ -5,7 +5,10 @@
 #include <VK_ShaderSetImpl.h>
 #include <VK_DescriptorSets.h>
 #include <VK_UniformBufferImpl.h>
+#include <VK_DynamicUniformBuffer.h>
 #include <VK_TexelBuffer.h>
+#include <VK_StorageBuffer.h>
+#include <VK_StorageTexelBuffer.h>
 #include <VK_Util.h>
 
 VK_ShaderSetImpl::VK_ShaderSetImpl(VK_ContextImpl *vkContext):
@@ -138,9 +141,34 @@ VK_UniformBuffer *VK_ShaderSetImpl::addUniformBuffer(uint32_t binding, uint32_t 
     return buffer;
 }
 
+VK_UniformBuffer *VK_ShaderSetImpl::addDynamicUniformBuffer(uint32_t binding,
+                                                            uint32_t bufferSize, uint32_t count)
+{
+    auto buffer = new VK_DynamicUniformBuffer(context, binding, bufferSize, count);
+    buffer->initBuffer(context->getSwapImageCount());
+    uniformBuffers.push_back(buffer);
+    return buffer;
+}
+
 VK_UniformBuffer *VK_ShaderSetImpl::addTexelBuffer(uint32_t binding, uint32_t bufferSize)
 {
     auto buffer = new VK_TexelBuffer(context, binding, bufferSize);
+    buffer->initBuffer(context->getSwapImageCount());
+    uniformBuffers.push_back(buffer);
+    return buffer;
+}
+
+VK_UniformBuffer *VK_ShaderSetImpl::addStorageBuffer(uint32_t binding, uint32_t bufferSize)
+{
+    auto buffer = new VK_StorageBuffer(context, binding, bufferSize);
+    buffer->initBuffer(context->getSwapImageCount());
+    uniformBuffers.push_back(buffer);
+    return buffer;
+}
+
+VK_UniformBuffer *VK_ShaderSetImpl::addStorageTexelBuffer(uint32_t binding, uint32_t bufferSize)
+{
+    auto buffer = new VK_StorageTexelBuffer(context, binding, bufferSize);
     buffer->initBuffer(context->getSwapImageCount());
     uniformBuffers.push_back(buffer);
     return buffer;

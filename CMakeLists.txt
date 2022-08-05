@@ -100,11 +100,17 @@ add_library(
      source/VK_BufferViewImpl.cpp
      source/VK_TexelBuffer.h
      source/VK_TexelBuffer.cpp
+     source/VK_StorageBuffer.h
+     source/VK_StorageBuffer.cpp
      source/VK_QueryPool.cpp
      source/VK_QueryPoolImpl.h
+     source/VK_DynamicUniformBuffer.h
+     source/VK_DynamicUniformBuffer.cpp
+     source/VK_StorageTexelBuffer.h
+     source/VK_StorageTexelBuffer.cpp
      thirdparty/tiny_obj_loader.cc
      thirdparty/stb_image.cpp
-     thirdparty/tiff.cpp
+     thirdparty/tiffutil.cpp
 )
 
 add_subdirectory(demo)

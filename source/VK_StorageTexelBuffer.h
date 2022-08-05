@@ -1,16 +1,15 @@
-#ifndef VK_TEXELBUFFER_H
-#define VK_TEXELBUFFER_H
+#pragma once
 #include <VK_UniformBuffer.h>
 #include <VK_ContextImpl.h>
 #include <VK_BufferViewImpl.h>
 
-class VK_TexelBuffer : public VK_UniformBuffer
+class VK_StorageTexelBuffer : public VK_UniformBuffer
 {
     friend class VK_ContextImpl;
 public:
-    VK_TexelBuffer() = delete;
-    VK_TexelBuffer(VK_ContextImpl *vkContext, uint32_t binding, uint32_t bufferSize);
-    ~VK_TexelBuffer();
+    VK_StorageTexelBuffer() = delete;
+    VK_StorageTexelBuffer(VK_ContextImpl *vkContext, uint32_t binding, uint32_t bufferSize);
+    ~VK_StorageTexelBuffer();
 public:
     bool isDynamicBuffer()const override;
     uint32_t getBufferSize()const override;
@@ -42,4 +41,3 @@ protected:
     bool needClear = false;
 };
 
-#endif // VK_TEXELBUFFER_H

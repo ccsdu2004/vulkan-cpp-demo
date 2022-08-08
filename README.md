@@ -32,4 +32,6 @@ vulkan学习和c++封装库
 14.深度测试
 15.纹理显示
 16.管线状态查询
-17.等等
+17.dynamic uniform
+18.storage texel buffer
+19.等等

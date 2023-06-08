@@ -35,3 +35,9 @@ vulkan学习和c++封装库
 17.dynamic uniform
 18.storage texel buffer
 19.等等
+
+待实现功能
+1.subpass
+2.计算管线
+3.多线程提交
+4.离屏渲染
